@@ -793,14 +793,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Pi-hole requests include `auth` for every endpoint.
-- [ ] Query reads require a strict limit and never dump unbounded history into LLM context.
-- [ ] Unbound stats parse key/value output into typed metrics.
+- [x] Pi-hole requests include `auth` for every endpoint.
+- [x] Query reads require a strict limit and never dump unbounded history into LLM context.
+- [x] Unbound stats parse key/value output into typed metrics.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_network_tool.py`
-- [ ] Manual check: missing Pi-hole token produces a clear auth error.
+- [x] Tests pass: `pytest tests/tools/test_network_tool.py`
+- [x] Manual check: missing Pi-hole token produces a clear auth error.
 
 **Dependencies:** Task 6
 
@@ -821,14 +821,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Public IP ranges are refused before nmap runs.
-- [ ] Scans are limited to configured private subnets.
-- [ ] Results include IP, hostname, MAC, vendor, state, and limited service metadata.
+- [x] Public IP ranges are refused before nmap runs.
+- [x] Scans are limited to configured private subnets.
+- [x] Results include IP, hostname, MAC, vendor, state, and limited service metadata.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_network_scanning.py`
-- [ ] Manual check: `8.8.8.8` and public CIDRs are rejected.
+- [x] Tests pass: `pytest tests/tools/test_network_scanning.py`
+- [x] Manual check: `8.8.8.8` and public CIDRs are rejected.
 
 **Dependencies:** Tasks 9, 25
 
@@ -849,14 +849,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Security summary reports findings with severity and observed evidence.
-- [ ] Checks do not require write privileges.
-- [ ] Findings include remediation guidance but do not auto-fix.
+- [x] Security summary reports findings with severity and observed evidence.
+- [x] Checks do not require write privileges.
+- [x] Findings include remediation guidance but do not auto-fix.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_security_checks.py`
-- [ ] Manual check: fixture with privileged container produces high severity finding.
+- [x] Tests pass: `pytest tests/tools/test_security_checks.py`
+- [x] Manual check: fixture with privileged container produces high severity finding.
 
 **Dependencies:** Tasks 15, 18, 26
 
@@ -871,9 +871,9 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 ### Checkpoint: Network and Security
 
-- [ ] User can ask whether the network looks healthy and get Pi-hole, Unbound, and LAN scan facts.
-- [ ] Unknown device detection works from fixtures.
-- [ ] Security posture checks are evidence-based and read-only.
+- [x] User can ask whether the network looks healthy and get Pi-hole, Unbound, and LAN scan facts.
+- [x] Unknown device detection works from fixtures.
+- [x] Security posture checks are evidence-based and read-only.
 
 ---
 
