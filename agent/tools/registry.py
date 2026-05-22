@@ -107,6 +107,7 @@ def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
 
     from tools.backup_tool import register_tools as register_backup_tools
     from tools.docker_tool import register_tools as register_docker_tools
+    from tools.plex_tool import register_tools as register_plex_tools
     from tools.portainer_tool import register_tools as register_portainer_tools
     from tools.proxmox_tool import register_tools as register_proxmox_tools
 
@@ -114,5 +115,6 @@ def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
     register_portainer_tools(registry)
     register_proxmox_tools(registry)
     register_backup_tools(registry)
+    register_plex_tools(registry)
     if registry is default_registry:
         _builtins_registered = True
