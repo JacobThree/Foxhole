@@ -63,6 +63,7 @@ def test_plex_tools_register_expected_names() -> None:
         "plex_transcode_status",
         "plex_analyze_logs",
         "plex_buffering_diagnosis",
+        "plex_debug_guidance",
     }
 
 

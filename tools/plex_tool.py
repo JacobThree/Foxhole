@@ -13,6 +13,7 @@ from agent.tools.base import ToolResult
 from agent.tools.registry import ToolRegistry
 from schemas.python.plex import (
     PlexBufferingDiagnosisArgs,
+    PlexDebugGuidanceArgs,
     PlexLogAnalysisArgs,
     PlexLogFinding,
     PlexSession,
@@ -50,6 +51,14 @@ def register_tools(registry: ToolRegistry) -> None:
         ),
         args_model=PlexBufferingDiagnosisArgs,
     )(buffering_diagnosis)
+    registry.register(
+        name="plex_debug_guidance",
+        description=(
+            "Report whether Plex debug logging appears enabled and list safe manual commands "
+            "for the operator to run next. Never toggles Plex settings."
+        ),
+        args_model=PlexDebugGuidanceArgs,
+    )(debug_guidance)
 
 
 def active_sessions(arguments: BaseModel) -> ToolResult:
@@ -165,6 +174,45 @@ def buffering_diagnosis(arguments: BaseModel) -> ToolResult:
                 "Upstream bandwidth between server and remote clients",
                 "Plex database health (see plex_analyze_logs)",
             ],
+        },
+    )
+
+
+def debug_guidance(arguments: BaseModel) -> ToolResult:
+    args = PlexDebugGuidanceArgs.model_validate(arguments)
+    inspectable = False
+    debug_observed: bool | None = None
+    log_status = "not_provided"
+    if args.log_path:
+        try:
+            text = _read_tail(args.log_path, 65_536)
+            inspectable = True
+            log_status = "readable"
+            debug_observed = "DEBUG" in text or "Verbose" in text
+        except FileNotFoundError:
+            log_status = "missing"
+        except OSError as exc:
+            log_status = f"unreadable: {exc}"
+    return ToolResult(
+        success=True,
+        data={
+            "log_path": args.log_path,
+            "log_status": log_status,
+            "log_inspectable": inspectable,
+            "debug_logging_observed": debug_observed,
+            "manual_steps": [
+                "Settings > General > Show Advanced > enable verbose logging in Plex.",
+                "Restart Plex Media Server to apply the new log verbosity.",
+                "Reproduce the issue, then run plex_analyze_logs against the same path.",
+                "Settings > General > disable verbose logging when investigation is done.",
+            ],
+            "when_to_check": [
+                "CPU and GPU utilization on the Plex host while playback runs",
+                "Client codec support (HEVC, AV1) and direct-play eligibility",
+                "Upstream bandwidth between server and remote clients",
+                "Plex database health using plex_analyze_logs",
+            ],
+            "note": "Foxhole does not toggle Plex settings. Apply the manual steps above yourself.",
         },
     )
 
