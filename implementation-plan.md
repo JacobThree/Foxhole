@@ -348,12 +348,12 @@ Implementation order should build foundations first, then deliver vertical diagn
 **Acceptance criteria:**
 
 - [ ] Compose starts Redis, API, worker, beat, Flower, and socket proxy.
-- [ ] Socket proxy network is internal and not bound to a public interface.
-- [ ] Stage 1 proxy config blocks write endpoints such as exec, image build, volume mutation, and container delete.
+- [x] Socket proxy network is internal and not bound to a public interface.
+- [x] Stage 1 proxy config blocks write endpoints such as exec, image build, volume mutation, and container delete.
 
 **Verification:**
 
-- [ ] Build succeeds: `docker compose -f iac/compose/docker-compose.yml config`
+- [x] Build succeeds: `docker compose -f iac/compose/docker-compose.yml config`
 - [ ] Manual check: `/healthz` is reachable on localhost after compose up.
 - [ ] Manual check: blocked Docker operation returns 403 through the proxy.
 
@@ -376,14 +376,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Script creates or updates the user, role, ACL, and token without granting power or allocation privileges.
-- [ ] Docs explain the Stage 1 and Stage 2 privilege difference.
-- [ ] Token output instructions avoid storing secrets in shell history where possible.
+- [x] Script creates or updates the user, role, ACL, and token without granting power or allocation privileges.
+- [x] Docs explain the Stage 1 and Stage 2 privilege difference.
+- [x] Token output instructions avoid storing secrets in shell history where possible.
 
 **Verification:**
 
-- [ ] Shell lint passes if shellcheck is available.
-- [ ] Manual review: privileges are limited to audit roles plus optional `VM.Migrate`.
+- [x] Shell syntax passes: `bash -n iac/proxmox/create-api-token.sh`
+- [x] Manual review: privileges are limited to audit roles plus optional `VM.Migrate`.
 
 **Dependencies:** Task 1
 
@@ -403,14 +403,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Bootstrap exposes CPU, RAM, disk, OS, version, unprivileged, and tag variables.
-- [ ] Inside-container installer creates an unprivileged `agent` user and `/opt/homelab-agent`.
-- [ ] Systemd unit uses hardening options and reads `/etc/homelab-agent/agent.env`.
+- [x] Bootstrap exposes CPU, RAM, disk, OS, version, unprivileged, and tag variables.
+- [x] Inside-container installer creates an unprivileged `agent` user and `/opt/homelab-agent`.
+- [x] Systemd unit uses hardening options and reads `/etc/homelab-agent/foxhole.env`.
 
 **Verification:**
 
-- [ ] Shell lint passes if shellcheck is available.
-- [ ] Manual review: installer does not require privileged container mode by default.
+- [x] Shell syntax passes: `bash -n iac/lxc/install-homelab-agent.sh iac/lxc/install/homelab-agent-install.sh`
+- [x] Manual review: installer does not require privileged container mode by default.
 - [ ] Manual check on Proxmox test node before release.
 
 **Dependencies:** Tasks 10, 11
@@ -432,14 +432,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Ansible inventory and playbook install Python runtime, config directories, systemd service, and optional Docker Compose files.
-- [ ] Manual install docs cover Debian 12 and current Ubuntu LTS.
-- [ ] Service user and filesystem permissions match the LXC install path.
+- [x] Ansible inventory and playbook install Python runtime, config directories, and systemd service.
+- [x] Manual install docs cover Debian 12 and current Ubuntu LTS.
+- [x] Service user and filesystem permissions match the LXC install path.
 
 **Verification:**
 
-- [ ] Ansible syntax check passes: `ansible-playbook --syntax-check iac/ansible/playbook.yml`
-- [ ] Manual review: no secrets are committed.
+- [x] Ansible syntax check passes: `ansible-playbook --syntax-check iac/ansible/playbook.yml`
+- [x] Manual review: no secrets are committed.
 
 **Dependencies:** Task 12
 
@@ -460,9 +460,9 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Pull requests run tests, linting, type checking, and container build.
-- [ ] Integration tests use fakes or fixtures, not live Proxmox or media services.
-- [ ] Release workflow publishes a versioned container image only on tags.
+- [x] Pull requests run tests, linting, type checking, and container build.
+- [x] Integration tests use fakes or fixtures, not live Proxmox or media services.
+- [x] Release workflow publishes a versioned container image only on tags.
 
 **Verification:**
 

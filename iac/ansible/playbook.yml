@@ -1,0 +1,12 @@
+- name: Install Foxhole on Debian or Ubuntu
+  hosts: all
+  become: true
+  vars:
+    foxhole_user: agent
+    foxhole_group: agent
+    foxhole_install_dir: /opt/homelab-agent
+    foxhole_config_dir: /etc/homelab-agent
+    foxhole_package_path: "{{ playbook_dir }}/../.."
+  roles:
+    - role: agent
+

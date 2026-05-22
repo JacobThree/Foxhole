@@ -6,7 +6,7 @@ The first milestone is intentionally conservative: collect diagnostics, expose h
 
 ## Current Status
 
-Phase 2 builds the agent runtime:
+Phase 3 builds a deployable skeleton:
 
 - Python package scaffold for the agent, tools, workers, schemas, deployment artifacts, and docs.
 - Pydantic settings with redacted secret output.
@@ -17,6 +17,9 @@ Phase 2 builds the agent runtime:
 - Strict tool argument parsing with bounded correction hooks for fake or real LLM clients.
 - Authenticated `/chat` orchestration through the tool registry.
 - Write-action policy that denies writes in stage 1 and requires confirmation tokens in stage 2.
+- Docker Compose deployment for API, worker, beat, Redis, Flower, and a read-only Docker socket proxy.
+- Proxmox API token helper and LXC bootstrap path.
+- Debian/Ubuntu Ansible install path and GitHub Actions CI/container build.
 
 ## First Local Install Path
 
@@ -41,6 +44,18 @@ Open `http://127.0.0.1:8000/healthz` for process health. Use `/readyz` to verify
 
 Phase 2 chat uses the configured LiteLLM alias `agent-primary` by default, with `agent-local` and `agent-vllm` documented as fallback targets. Tests use fake LLM clients, so the runtime can be developed without live model credentials.
 
+## Docker Compose
+
+Copy the Compose env template and start the deployment skeleton:
+
+```bash
+cp iac/compose/.env.example iac/compose/.env
+docker compose -f iac/compose/docker-compose.yml config
+docker compose -f iac/compose/docker-compose.yml up --build
+```
+
+See `docs/deployment/docker-compose.md` for socket proxy details and the Stage 2 override.
+
 ## Safety Model
 
 Foxhole starts in read-only mode. Optional integration credentials can be omitted while developing the core API. Missing Plex, Sonarr, Radarr, Tautulli, Overseerr, Pi-hole, Docker, or Proxmox settings should disable those integrations instead of preventing the API from starting.
@@ -50,15 +65,15 @@ Secrets are treated as configuration, not diagnostics. Health and readiness resp
 ## Repository Layout
 
 ```text
-agent/          FastAPI app, auth, settings, and future orchestration code
+agent/          FastAPI app, auth, settings, and orchestration code
 tools/          Read-only integration tool implementations
 workers/        Celery tasks and background alert jobs
 schemas/        Shared schema artifacts for API, tools, UI, and docs
-deploy/         Docker, Proxmox, and systemd deployment assets
+iac/            Docker Compose, Proxmox, LXC, Ansible, and systemd assets
 docs/           Architecture and operator documentation
 tests/          Unit and API tests
 ```
 
 ## Roadmap
 
-Phase 2 adds the LLM router and typed tool registry. Later phases add read-only tool families, Telegram alert fanout, deployment recipes, and a web UI. Guarded write tools come after the diagnostic workflow is reliable.
+Phase 4 adds read-only Docker, Proxmox, media-service, DNS, and LAN diagnostic tools. Telegram alert fanout and the web UI follow after the diagnostic workflow is reliable.

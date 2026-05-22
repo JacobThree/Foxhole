@@ -1,0 +1,12 @@
+services:
+  docker-socket-proxy:
+    environment:
+      # Stage 2 write tools still require Foxhole confirmation tokens. This
+      # override only opens the Docker API verbs needed for narrow remediations.
+      POST: "1"
+      CONTAINERS: "1"
+      EXEC: "0"
+      BUILD: "0"
+      VOLUMES: "0"
+      IMAGES: "1"
+

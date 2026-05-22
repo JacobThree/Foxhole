@@ -1,0 +1,133 @@
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: foxhole:local
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      FOXHOLE_ENVIRONMENT: production
+      FOXHOLE_REDIS_URL: redis://redis:6379/0
+      FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      docker-socket-proxy:
+        condition: service_started
+    networks:
+      - app
+      - socket-proxy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    image: foxhole:local
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      FOXHOLE_ENVIRONMENT: production
+      FOXHOLE_REDIS_URL: redis://redis:6379/0
+      FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
+    command: ["celery", "-A", "workers.celery_app:celery_app", "worker", "--loglevel=INFO"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - app
+      - socket-proxy
+
+  beat:
+    image: foxhole:local
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      FOXHOLE_ENVIRONMENT: production
+      FOXHOLE_REDIS_URL: redis://redis:6379/0
+      FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
+    command: ["celery", "-A", "workers.celery_app:celery_app", "beat", "--loglevel=INFO"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - app
+      - socket-proxy
+
+  flower:
+    image: mher/flower:2.0
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      FLOWER_PORT: "5555"
+    ports:
+      - "127.0.0.1:5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - app
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3
+    environment:
+      CONTAINERS: "1"
+      EVENTS: "1"
+      IMAGES: "1"
+      INFO: "1"
+      NETWORKS: "1"
+      VERSION: "1"
+      POST: "0"
+      AUTH: "0"
+      BUILD: "0"
+      COMMIT: "0"
+      CONFIGS: "0"
+      DISTRIBUTION: "0"
+      EXEC: "0"
+      PLUGINS: "0"
+      SECRETS: "0"
+      SERVICES: "0"
+      SESSION: "0"
+      SWARM: "0"
+      SYSTEM: "0"
+      TASKS: "0"
+      VOLUMES: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket-proxy
+    read_only: true
+    tmpfs:
+      - /run
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+
+networks:
+  app:
+  socket-proxy:
+    internal: true
