@@ -53,14 +53,3 @@ python_version = "3.12"
 strict = true
 warn_unused_configs = true
 files = ["agent", "tools", "workers"]
-
-[[tool.mypy.overrides]]
-module = [
-  "celery.*",
-  "docker.*",
-  "litellm.*",
-  "proxmoxer.*",
-  "telegram.*",
-]
-ignore_missing_imports = true
-
