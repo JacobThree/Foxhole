@@ -646,14 +646,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Tool reports active sessions, users, titles, player, direct play vs transcode, and hardware transcode state.
-- [ ] Log parser detects SQLite busy, database locked, slow SQL, and transcode errors.
-- [ ] Tool explains buffering risk using observed session and hardware data.
+- [x] Tool reports active sessions, users, titles, player, direct play vs transcode, and hardware transcode state.
+- [x] Log parser detects SQLite busy, database locked, slow SQL, and transcode errors.
+- [x] Tool explains buffering risk using observed session and hardware data.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_plex_tool.py`
-- [ ] Manual check: missing Plex log path returns a clear unavailable state.
+- [x] Tests pass: `pytest tests/tools/test_plex_tool.py`
+- [x] Manual check: missing Plex log path returns a clear unavailable state.
 
 **Dependencies:** Task 6
 
@@ -674,14 +674,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Tool distinguishes "can inspect" from "needs manual action".
-- [ ] Suggested commands are documented and not executed automatically.
-- [ ] Output includes when to check CPU, GPU, bandwidth, client codec support, and database health.
+- [x] Tool distinguishes "can inspect" from "needs manual action".
+- [x] Suggested commands are documented and not executed automatically.
+- [x] Output includes when to check CPU, GPU, bandwidth, client codec support, and database health.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_plex_debug_guidance.py`
-- [ ] Manual review: guidance does not imply unsupported automatic Plex mutation.
+- [x] Tests pass: `pytest tests/tools/test_plex_debug_guidance.py`
+- [x] Manual review: guidance does not imply unsupported automatic Plex mutation.
 
 **Dependencies:** Task 20
 
@@ -701,14 +701,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Tool reports queue size, warnings, health issues, and root folder paths.
-- [ ] Import mismatch diagnosis includes title, output path, expected roots, and status messages.
-- [ ] API auth uses `X-Api-Key` and handles Sonarr/Radarr independently.
+- [x] Tool reports queue size, warnings, health issues, and root folder paths.
+- [x] Import mismatch diagnosis includes title, output path, expected roots, and status messages.
+- [x] API auth uses `X-Api-Key` and handles Sonarr/Radarr independently.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_arr_tool.py`
-- [ ] Manual check: fixture with bad volume mapping produces mismatch diagnosis.
+- [x] Tests pass: `pytest tests/tools/test_arr_tool.py`
+- [x] Manual check: fixture with bad volume mapping produces mismatch diagnosis.
 
 **Dependencies:** Task 6
 
@@ -729,14 +729,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Write actions require confirmation and target a specific service and resource id.
-- [ ] Before/after diff is shown before execution.
-- [ ] Tool refuses unsupported bulk profile rewrites.
+- [x] Write actions require confirmation and target a specific service and resource id.
+- [x] Before/after diff is shown before execution.
+- [x] Tool refuses unsupported bulk profile rewrites.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_arr_actions.py`
-- [ ] Manual check: unconfirmed profile update returns confirmation request.
+- [x] Tests pass: `pytest tests/tools/test_arr_actions.py`
+- [x] Manual check: unconfirmed profile update returns confirmation request.
 
 **Dependencies:** Tasks 9, 22
 
@@ -757,14 +757,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Tautulli uses `?apikey=` and Overseerr uses `X-Api-Key`.
-- [ ] Fault timeline merges events by timestamp and source.
-- [ ] Overseerr filter limitations are documented and handled by cross-checking status fields where possible.
+- [x] Tautulli uses `?apikey=` and Overseerr uses `X-Api-Key`.
+- [x] Fault timeline merges events by timestamp and source.
+- [x] Overseerr filter limitations are documented and handled by cross-checking status fields where possible.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_observability_tool.py`
-- [ ] Manual check: empty history returns an empty timeline, not an error.
+- [x] Tests pass: `pytest tests/tools/test_observability_tool.py`
+- [x] Manual check: empty history returns an empty timeline, not an error.
 
 **Dependencies:** Tasks 20, 22
 
@@ -779,9 +779,9 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 ### Checkpoint: Media Diagnostics
 
-- [ ] User can ask why Plex users are buffering and get Plex, Tautulli, and resource facts.
-- [ ] User can ask why Sonarr/Radarr did not import and get queue, health, root folder, and path mismatch facts.
-- [ ] Media write actions remain confirmation-gated.
+- [x] User can ask why Plex users are buffering and get Plex, Tautulli, and resource facts.
+- [x] User can ask why Sonarr/Radarr did not import and get queue, health, root folder, and path mismatch facts.
+- [x] Media write actions remain confirmation-gated.
 
 ---
 
