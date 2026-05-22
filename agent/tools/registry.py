@@ -105,6 +105,8 @@ def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
     if registry is default_registry and _builtins_registered:
         return
 
+    from tools.arr_tool import register_tools as register_arr_tools
+    from tools.arr_tool import register_write_tools as register_arr_write_tools
     from tools.backup_tool import register_tools as register_backup_tools
     from tools.docker_tool import register_tools as register_docker_tools
     from tools.plex_tool import register_tools as register_plex_tools
@@ -116,5 +118,7 @@ def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
     register_proxmox_tools(registry)
     register_backup_tools(registry)
     register_plex_tools(registry)
+    register_arr_tools(registry)
+    register_arr_write_tools(registry)
     if registry is default_registry:
         _builtins_registered = True
