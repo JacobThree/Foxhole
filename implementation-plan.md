@@ -198,14 +198,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] `agent-primary`, `agent-local`, and `agent-vllm` aliases are documented.
-- [ ] Router timeouts, retries, and fallbacks are configured.
-- [ ] Tests can replace the LiteLLM client with a fake client.
+- [x] `agent-primary`, `agent-local`, and `agent-vllm` aliases are documented.
+- [x] Router timeouts, retries, and fallbacks are configured.
+- [x] Tests can replace the LiteLLM client with a fake client.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/llm`
-- [ ] Manual check: dry-run config validation succeeds without real provider calls.
+- [x] Tests pass: `pytest tests/agent/llm`
+- [x] Manual check: dry-run config validation succeeds without real provider calls.
 
 **Dependencies:** Task 3
 
@@ -226,14 +226,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Tools register by name and expose OpenAI-compatible JSON schema.
-- [ ] Duplicate tool names fail at startup.
-- [ ] Tool results have a stable schema for API, UI, and logs.
+- [x] Tools register by name and expose OpenAI-compatible JSON schema.
+- [x] Duplicate tool names fail at startup.
+- [x] Tool results have a stable schema for API, UI, and logs.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/tools/test_registry.py`
-- [ ] Manual check: registry can list available tools and schemas.
+- [x] Tests pass: `pytest tests/agent/tools/test_registry.py`
+- [x] Manual check: registry can list available tools and schemas.
 
 **Dependencies:** Task 2
 
@@ -254,14 +254,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Valid arguments parse without LLM correction.
-- [ ] Invalid arguments retry with validation error context.
-- [ ] Corrections are capped and observable in logs.
+- [x] Valid arguments parse without LLM correction.
+- [x] Invalid arguments retry with validation error context.
+- [x] Corrections are capped and observable in logs.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/tools/test_argument_parsing.py`
-- [ ] Manual check: malformed JSON fixture is corrected or rejected deterministically.
+- [x] Tests pass: `pytest tests/agent/tools/test_argument_parsing.py`
+- [x] Manual check: malformed JSON fixture is corrected or rejected deterministically.
 
 **Dependencies:** Tasks 5, 6
 
@@ -281,14 +281,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] `/chat` accepts authenticated messages and returns an answer.
-- [ ] Tool calls are executed only through the registry.
-- [ ] Final answers distinguish observed tool output from model inference.
+- [x] `/chat` accepts authenticated messages and returns an answer.
+- [x] Tool calls are executed only through the registry.
+- [x] Final answers distinguish observed tool output from model inference.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/test_chat.py tests/agent/test_orchestrator.py`
-- [ ] Manual check: fake LLM can call a fake diagnostic tool end-to-end.
+- [x] Tests pass: `pytest tests/agent/test_chat.py tests/agent/test_orchestrator.py`
+- [x] Manual check: fake LLM can call a fake diagnostic tool end-to-end.
 
 **Dependencies:** Tasks 5, 6, 7
 
@@ -310,14 +310,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Each tool declares `read_only`, `requires_confirmation`, or `autonomous_allowed`.
-- [ ] Unconfirmed write attempts return a structured confirmation request.
-- [ ] Audit log records requested action, caller, arguments, confirmation status, and result.
+- [x] Each tool declares `read_only`, `requires_confirmation`, or `autonomous_allowed`.
+- [x] Unconfirmed write attempts return a structured confirmation request.
+- [x] Audit log records requested action, caller, arguments, confirmation status, and result.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/test_write_policy.py`
-- [ ] Manual check: fake restart tool cannot run without confirmation.
+- [x] Tests pass: `pytest tests/agent/test_write_policy.py`
+- [x] Manual check: fake restart tool cannot run without confirmation.
 
 **Dependencies:** Task 6
 
@@ -333,9 +333,9 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 ### Checkpoint: Agent Runtime
 
-- [ ] Fake chat flow works end-to-end with typed tool calls.
-- [ ] Read-only mode blocks every write-class tool.
-- [ ] Tool call traces are available for debugging.
+- [x] Fake chat flow works end-to-end with typed tool calls.
+- [x] Read-only mode blocks every write-class tool.
+- [x] Tool call traces are available for debugging.
 
 ---
 

@@ -6,12 +6,17 @@ The first milestone is intentionally conservative: collect diagnostics, expose h
 
 ## Current Status
 
-Phase 1 builds the foundation:
+Phase 2 builds the agent runtime:
 
 - Python package scaffold for the agent, tools, workers, schemas, deployment artifacts, and docs.
 - Pydantic settings with redacted secret output.
 - FastAPI shell with health, readiness, and bearer-token protection.
 - Test, lint, and type-check commands for contributors.
+- LiteLLM provider aliases for `agent-primary`, `agent-local`, and `agent-vllm`.
+- Typed tool registration with OpenAI-compatible JSON schema export.
+- Strict tool argument parsing with bounded correction hooks for fake or real LLM clients.
+- Authenticated `/chat` orchestration through the tool registry.
+- Write-action policy that denies writes in stage 1 and requires confirmation tokens in stage 2.
 
 ## First Local Install Path
 
@@ -34,6 +39,8 @@ uvicorn agent.main:app --reload
 
 Open `http://127.0.0.1:8000/healthz` for process health. Use `/readyz` to verify settings and Redis availability.
 
+Phase 2 chat uses the configured LiteLLM alias `agent-primary` by default, with `agent-local` and `agent-vllm` documented as fallback targets. Tests use fake LLM clients, so the runtime can be developed without live model credentials.
+
 ## Safety Model
 
 Foxhole starts in read-only mode. Optional integration credentials can be omitted while developing the core API. Missing Plex, Sonarr, Radarr, Tautulli, Overseerr, Pi-hole, Docker, or Proxmox settings should disable those integrations instead of preventing the API from starting.
@@ -55,4 +62,3 @@ tests/          Unit and API tests
 ## Roadmap
 
 Phase 2 adds the LLM router and typed tool registry. Later phases add read-only tool families, Telegram alert fanout, deployment recipes, and a web UI. Guarded write tools come after the diagnostic workflow is reliable.
-

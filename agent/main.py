@@ -6,7 +6,9 @@ from redis import asyncio as redis_async
 
 from agent import __version__
 from agent.auth import require_bearer_token
+from agent.orchestrator import AgentOrchestrator, create_orchestrator
 from agent.settings import AppSettings, get_settings
+from schemas.python.chat import ChatRequest, ChatResponse
 
 
 class HealthResponse(BaseModel):
@@ -42,6 +44,12 @@ async def check_redis_ready(settings: Annotated[AppSettings, Depends(get_setting
     return bool(pong)
 
 
+def get_chat_orchestrator(
+    settings: Annotated[AppSettings, Depends(get_settings)],
+) -> AgentOrchestrator:
+    return create_orchestrator(settings)
+
+
 @app.get("/healthz", response_model=HealthResponse)
 async def healthz() -> HealthResponse:
     return HealthResponse(status="ok", service="foxhole", version=__version__)
@@ -72,3 +80,12 @@ async def readyz(
         checks=checks,
         settings=settings.redacted_summary(),
     )
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(
+    request: ChatRequest,
+    _: Annotated[None, Depends(require_bearer_token)],
+    orchestrator: Annotated[AgentOrchestrator, Depends(get_chat_orchestrator)],
+) -> ChatResponse:
+    return await orchestrator.chat(request)

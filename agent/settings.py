@@ -81,6 +81,10 @@ class AppSettings(BaseSettings):
     llm_local_api_base: str | None = "http://localhost:11434"
     llm_vllm_model: str = "agent-vllm"
     llm_vllm_api_base: str | None = "http://localhost:8001/v1"
+    llm_timeout_seconds: float = Field(default=30, ge=1, le=300)
+    llm_retries: int = Field(default=2, ge=0, le=5)
+    write_stage: int = Field(default=1, ge=1, le=3)
+    write_confirmation_secret: SecretStr | None = None
 
     proxmox_host: str | None = None
     proxmox_verify_ssl: bool = True
@@ -116,6 +120,7 @@ class AppSettings(BaseSettings):
     @field_serializer(
         "api_bearer_token",
         "llm_primary_api_key",
+        "write_confirmation_secret",
         "proxmox_token_id",
         "proxmox_token_secret",
         "telegram_bot_token",

@@ -1,0 +1,13 @@
+# Documented LiteLLM aliases. Runtime values are built from validated settings.
+aliases:
+  agent-primary:
+    description: Hosted model used for normal agent responses.
+    fallbacks:
+      - agent-local
+      - agent-vllm
+  agent-local:
+    description: Local Ollama-compatible model endpoint.
+    default_api_base: http://localhost:11434
+  agent-vllm:
+    description: OpenAI-compatible vLLM endpoint.
+    default_api_base: http://localhost:8001/v1
