@@ -6,7 +6,7 @@ The first milestone is intentionally conservative: collect diagnostics, expose h
 
 ## Current Status
 
-Phase 3 builds a deployable skeleton:
+Phase 4 builds infrastructure diagnostics:
 
 - Python package scaffold for the agent, tools, workers, schemas, deployment artifacts, and docs.
 - Pydantic settings with redacted secret output.
@@ -20,6 +20,10 @@ Phase 3 builds a deployable skeleton:
 - Docker Compose deployment for API, worker, beat, Redis, Flower, and a read-only Docker socket proxy.
 - Proxmox API token helper and LXC bootstrap path.
 - Debian/Ubuntu Ansible install path and GitHub Actions CI/container build.
+- Docker container status, bounded logs, image metadata, restart-loop diagnostics, and confirmed start/stop/restart actions.
+- Portainer endpoint and stack diagnostics with API-token auth and confirmed Git redeploy.
+- Proxmox node, inventory, storage, backup job, and confirmed LXC migration tools.
+- Backup and storage health summary for stale jobs, failed jobs, full datastores, and local filesystem usage.
 
 ## First Local Install Path
 
@@ -76,4 +80,4 @@ tests/          Unit and API tests
 
 ## Roadmap
 
-Phase 4 adds read-only Docker, Proxmox, media-service, DNS, and LAN diagnostic tools. Telegram alert fanout and the web UI follow after the diagnostic workflow is reliable.
+Phase 5 adds media-service diagnostics. Telegram alert fanout and the web UI follow after the diagnostic workflow is reliable.

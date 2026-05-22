@@ -111,6 +111,11 @@ class AppSettings(BaseSettings):
     overseerr_base_url: AnyHttpUrl | None = None
     overseerr_api_key: SecretStr | None = None
 
+    portainer_base_url: AnyHttpUrl | None = None
+    portainer_api_token: SecretStr | None = None
+    portainer_username: str | None = None
+    portainer_password: SecretStr | None = None
+
     pihole_base_url: AnyHttpUrl | None = None
     pihole_api_token: SecretStr | None = None
 
@@ -129,6 +134,8 @@ class AppSettings(BaseSettings):
         "radarr_api_key",
         "tautulli_api_key",
         "overseerr_api_key",
+        "portainer_api_token",
+        "portainer_password",
         "pihole_api_token",
         when_used="json",
     )
@@ -179,6 +186,14 @@ class AppSettings(BaseSettings):
         return IntegrationSettings(base_url=self.overseerr_base_url, api_key=self.overseerr_api_key)
 
     @property
+    def portainer_configured(self) -> bool:
+        has_token = self.portainer_api_token is not None
+        has_jwt_credentials = (
+            self.portainer_username is not None and self.portainer_password is not None
+        )
+        return self.portainer_base_url is not None and (has_token or has_jwt_credentials)
+
+    @property
     def pihole(self) -> IntegrationSettings:
         return IntegrationSettings(base_url=self.pihole_base_url, token=self.pihole_api_token)
 
@@ -196,6 +211,7 @@ class AppSettings(BaseSettings):
             "radarr": self.radarr.configured,
             "tautulli": self.tautulli.configured,
             "overseerr": self.overseerr.configured,
+            "portainer": self.portainer_configured,
             "pihole": self.pihole.configured,
             "unbound": self.unbound.configured,
         }

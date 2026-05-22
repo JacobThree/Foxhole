@@ -497,13 +497,13 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Tool returns container id, name, image, status, health, labels, ports, and restart count.
-- [ ] Log reads require explicit line limits and max byte limits.
-- [ ] Tool handles socket proxy 403 responses as permission errors, not crashes.
+- [x] Tool returns container id, name, image, status, health, labels, ports, and restart count.
+- [x] Log reads require explicit line limits and max byte limits.
+- [x] Tool handles socket proxy 403 responses as permission errors, not crashes.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_docker_tool.py`
+- [x] Tests pass: `pytest tests/tools/test_docker_tool.py`
 - [ ] Manual check: diagnostics work against the Compose socket proxy.
 
 **Dependencies:** Tasks 6, 10
@@ -525,14 +525,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Restart action requires confirmation and timeout bounds.
-- [ ] Tool refuses container exec, image build, volume changes, and delete operations.
-- [ ] Audit entry records old status, requested action, and resulting status.
+- [x] Restart action requires confirmation and timeout bounds.
+- [x] Tool refuses container exec, image build, volume changes, and delete operations.
+- [x] Audit entry records old status, requested action, and resulting status.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_docker_actions.py`
-- [ ] Manual check: unconfirmed restart returns confirmation request.
+- [x] Tests pass: `pytest tests/tools/test_docker_actions.py`
+- [x] Manual check: unconfirmed restart returns confirmation request.
 
 **Dependencies:** Tasks 9, 15
 
@@ -553,13 +553,13 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Read tools list endpoints and stacks.
-- [ ] Redeploy action requires confirmation and endpoint/stack ids.
-- [ ] Auth supports API token first and JWT fallback second.
+- [x] Read tools list endpoints and stacks.
+- [x] Redeploy action requires confirmation and endpoint/stack ids.
+- [x] Auth supports API token first and JWT fallback second.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_portainer_tool.py`
+- [x] Tests pass: `pytest tests/tools/test_portainer_tool.py`
 - [ ] Manual check against a test Portainer endpoint if available.
 
 **Dependencies:** Tasks 6, 9
@@ -581,13 +581,13 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Read-only tools work with audit-only token privileges.
-- [ ] Storage output includes used percentage, used GB, total GB, and datastore type.
-- [ ] Migration tool refuses to run unless write policy and confirmation are satisfied.
+- [x] Read-only tools work with audit-only token privileges.
+- [x] Storage output includes used percentage, used GB, total GB, and datastore type.
+- [x] Migration tool refuses to run unless write policy and confirmation are satisfied.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_proxmox_tool.py`
+- [x] Tests pass: `pytest tests/tools/test_proxmox_tool.py`
 - [ ] Manual check: audit-only token can run inventory and storage tools.
 - [ ] Manual check: migration fails clearly without `VM.Migrate`.
 
@@ -610,14 +610,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Summary identifies stale backups, failed jobs, and storage above configured thresholds.
-- [ ] Thresholds are configurable per datastore.
-- [ ] Output includes concrete next actions without performing writes.
+- [x] Summary identifies stale backups, failed jobs, and storage above configured thresholds.
+- [x] Thresholds are configurable per datastore.
+- [x] Output includes concrete next actions without performing writes.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_backup_storage_health.py`
-- [ ] Manual check: fake backup fixture produces expected warnings.
+- [x] Tests pass: `pytest tests/tools/test_backup_storage_health.py`
+- [x] Manual check: fake backup fixture produces expected warnings.
 
 **Dependencies:** Task 18
 
@@ -632,9 +632,9 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 ### Checkpoint: Infrastructure Diagnostics
 
-- [ ] User can ask "what is broken in Docker?" and get observed container/log facts.
-- [ ] User can ask "is Proxmox storage healthy?" and get datastore and backup facts.
-- [ ] No write action can run without explicit confirmation.
+- [x] User can ask "what is broken in Docker?" and get observed container/log facts.
+- [x] User can ask "is Proxmox storage healthy?" and get datastore and backup facts.
+- [x] No write action can run without explicit confirmation.
 
 ---
 

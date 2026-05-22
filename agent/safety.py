@@ -21,6 +21,7 @@ class AuditEvent(BaseModel):
     safety: ToolSafety
     confirmation_status: str
     result: str
+    result_data: dict[str, Any] | list[Any] | str | int | float | bool | None = None
 
 
 @dataclass
@@ -29,6 +30,19 @@ class AuditLog:
 
     def append(self, event: AuditEvent) -> None:
         self.events.append(event)
+
+    def update_result(
+        self,
+        audit_id: str,
+        *,
+        result: str,
+        result_data: dict[str, Any] | list[Any] | str | int | float | bool | None = None,
+    ) -> None:
+        for event in self.events:
+            if event.id == audit_id:
+                event.result = result
+                event.result_data = result_data
+                return
 
 
 class PolicyDecision(BaseModel):
@@ -99,6 +113,15 @@ class WritePolicy:
         metadata.confirmation_required = False
         metadata.confirmation_token = None
         return PolicyDecision(allowed=True, write_action=metadata)
+
+    def record_tool_result(self, audit_id: str | None, result_data: Any, success: bool) -> None:
+        if audit_id is None:
+            return
+        self._audit_log.update_result(
+            audit_id,
+            result="succeeded" if success else "failed",
+            result_data=result_data,
+        )
 
     def confirmation_token(self, tool_name: str, caller: str, arguments: dict[str, Any]) -> str:
         secret = (

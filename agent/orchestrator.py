@@ -10,7 +10,7 @@ from agent.safety import WritePolicy
 from agent.settings import AppSettings
 from agent.tools.argument_parsing import parse_tool_arguments
 from agent.tools.base import ToolResult
-from agent.tools.registry import ToolRegistry, default_registry
+from agent.tools.registry import ToolRegistry, default_registry, register_builtin_tools
 from schemas.python.chat import ChatRequest, ChatResponse, ToolTrace
 
 
@@ -64,6 +64,11 @@ class AgentOrchestrator:
                     result = await tool.run(arguments)
                     if decision.write_action.requested:
                         result.write_action = decision.write_action
+                        self._write_policy.record_tool_result(
+                            decision.write_action.audit_id,
+                            result.data,
+                            result.success,
+                        )
                 else:
                     result = ToolResult(
                         success=False,
@@ -116,6 +121,7 @@ def _answer_with_observations(model_content: str, traces: Sequence[ToolTrace]) -
 def create_orchestrator(settings: AppSettings) -> AgentOrchestrator:
     from agent.llm.client import LiteLLMClient
 
+    register_builtin_tools(default_registry)
     return AgentOrchestrator(
         llm_client=LiteLLMClient(settings),
         registry=default_registry,

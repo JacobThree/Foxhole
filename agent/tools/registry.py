@@ -97,3 +97,22 @@ class ToolRegistry:
 
 
 default_registry = ToolRegistry()
+_builtins_registered = False
+
+
+def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
+    global _builtins_registered
+    if registry is default_registry and _builtins_registered:
+        return
+
+    from tools.backup_tool import register_tools as register_backup_tools
+    from tools.docker_tool import register_tools as register_docker_tools
+    from tools.portainer_tool import register_tools as register_portainer_tools
+    from tools.proxmox_tool import register_tools as register_proxmox_tools
+
+    register_docker_tools(registry)
+    register_portainer_tools(registry)
+    register_proxmox_tools(registry)
+    register_backup_tools(registry)
+    if registry is default_registry:
+        _builtins_registered = True
