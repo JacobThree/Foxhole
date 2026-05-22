@@ -109,10 +109,12 @@ def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
     from tools.arr_tool import register_write_tools as register_arr_write_tools
     from tools.backup_tool import register_tools as register_backup_tools
     from tools.docker_tool import register_tools as register_docker_tools
+    from tools.network_tool import register_tools as register_network_tools
     from tools.observability_tool import register_tools as register_observability_tools
     from tools.plex_tool import register_tools as register_plex_tools
     from tools.portainer_tool import register_tools as register_portainer_tools
     from tools.proxmox_tool import register_tools as register_proxmox_tools
+    from tools.security_tool import register_tools as register_security_tools
 
     register_docker_tools(registry)
     register_portainer_tools(registry)
@@ -122,5 +124,7 @@ def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
     register_arr_tools(registry)
     register_arr_write_tools(registry)
     register_observability_tools(registry)
+    register_network_tools(registry)
+    register_security_tools(registry)
     if registry is default_registry:
         _builtins_registered = True

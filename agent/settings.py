@@ -122,6 +122,9 @@ class AppSettings(BaseSettings):
     unbound_host: str | None = None
     unbound_port: int = Field(default=8953, ge=1, le=65535)
 
+    network_allowed_subnets: list[str] = Field(default_factory=list)
+    network_known_macs: list[str] = Field(default_factory=list)
+
     @field_serializer(
         "api_bearer_token",
         "llm_primary_api_key",
