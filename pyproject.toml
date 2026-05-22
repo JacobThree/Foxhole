@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "foxhole"
+version = "0.1.0"
+description = "Read-only-first homelab diagnostic agent."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "Foxhole contributors" },
+]
+dependencies = [
+  "celery>=5.4,<6",
+  "docker>=7,<8",
+  "fastapi>=0.115,<1",
+  "httpx>=0.27,<1",
+  "instructor>=1.7,<2",
+  "litellm>=1.53,<2",
+  "proxmoxer>=2.1,<3",
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.6,<3",
+  "python-telegram-bot>=21,<23",
+  "redis>=5,<7",
+  "uvicorn[standard]>=0.34,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.13,<2",
+  "pytest>=8.3,<10",
+  "ruff>=0.8,<1",
+]
+
+[tool.setuptools.packages.find]
+include = ["agent*", "schemas*", "tools*", "workers*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+files = ["agent", "tools", "workers"]
+
+[[tool.mypy.overrides]]
+module = [
+  "celery.*",
+  "docker.*",
+  "litellm.*",
+  "proxmoxer.*",
+  "telegram.*",
+]
+ignore_missing_imports = true
+
