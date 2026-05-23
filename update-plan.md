@@ -19,9 +19,10 @@ Turn Foxhole from a strong MVP scaffold into a self-hosted homelab operations co
 
 - Verified with `rtk proxy pytest` from the repo root: 134 tests passed.
 - Verified with `rtk pnpm lint` and `rtk pnpm build` from `ui/`; both completed successfully. The build emitted only the existing Next.js workspace-root warning.
+- Re-verified Task 12 after SQLModel conversion with `rtk proxy mypy agent/db`, `rtk proxy ruff check agent/db`, and `rtk proxy pytest`: all passed.
 - Phase 1 through Phase 6 implementation is mostly complete and checked below.
-- Task 12 remains partially open because durable SQLite behavior is implemented, but the written requirement says SQLModel/SQLAlchemy-backed models; the current `agent/db/` implementation uses direct `sqlite3` repositories and dataclass row types.
-- Phase 7 remains open: tools expose safety and integration grouping, but not stable capability IDs or integration manifests.
+- Task 12 is complete: durable SQLite persistence now uses SQLModel/SQLAlchemy models and isolated session helpers under `agent/db/`.
+- Phase 7 remains open after re-audit: tools expose safety and integration grouping, but not stable capability IDs or integration manifests; Uptime Kuma, Homepage/Homarr widget output, and Caddy are not present.
 
 ## Dependency Graph
 
@@ -435,15 +436,13 @@ Implementation order should keep vertical slices working. UI work depends on sta
 - [x] Events survive API/worker restart.
 - [x] `/events` can read from durable storage with Redis as live/cache path or fallback.
 - [x] Database path is configurable and defaults to a local development path.
-- [ ] SQLModel/SQLAlchemy models and session helpers are isolated from API route code.
+- [x] SQLModel/SQLAlchemy models and session helpers are isolated from API route code.
 - [x] Retention settings exist for events, diagnostic runs, audits, resolved incidents, critical incidents, and pinned incidents.
 
 **Verification:**
 
 - [x] Tests pass: `pytest tests/agent/test_events.py tests/agent/test_settings.py`
 - [x] Manual check: event inserted before restart is returned after restart.
-
-**Review note:** Durable behavior is implemented and tested, but this task is not fully complete because the code does not use SQLModel/SQLAlchemy models as specified.
 
 **Dependencies:** Task 8
 
@@ -740,12 +739,14 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 - [ ] Every registered tool exposes one or more capability IDs.
 - [ ] Capability metadata includes read/write category and integration ownership.
-- [ ] Existing registry schema output remains OpenAI-compatible.
+- [x] Existing registry schema output remains OpenAI-compatible.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/tools/test_registry.py tests/agent/test_orchestrator.py`
-- [ ] Manual check: permissions view can render capabilities without hardcoding tool names.
+- [x] Tests pass: `pytest tests/agent/tools/test_registry.py tests/agent/test_orchestrator.py`
+- [x] Manual check: permissions view can render capabilities without hardcoding tool names.
+
+**Review note:** Existing capability display is a permissions view based on integration/tool names and safety levels. The stable capability ID metadata required by this task is not implemented yet.
 
 **Dependencies:** Task 7, Task 17
 

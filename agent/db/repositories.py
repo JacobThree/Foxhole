@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from agent.db.session import db_connection
+from sqlalchemy import delete
+from sqlmodel import col, select
+
+from agent.db.models import AuditRecord, CheckResultRecord, EventRecord, IncidentRecord
+from agent.db.session import db_session
 from agent.settings import AppSettings, get_settings
 from schemas.python.events import (
     AuditReceipt,
@@ -38,105 +41,92 @@ class EventRepository:
         self._settings = settings or get_settings()
 
     def store_event(self, event: Event) -> None:
-        with db_connection(self._settings) as connection:
-            connection.execute(
-                """
-                INSERT OR REPLACE INTO events (
-                    id, timestamp, type, severity, source, payload_summary,
-                    correlation_id, data_json, findings_json, budget_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    event.id,
-                    event.timestamp,
-                    event.type,
-                    event.severity,
-                    event.source,
-                    event.payload_summary,
-                    event.correlation_id,
-                    _json_dump(event.data),
-                    _json_dump([finding.model_dump(mode="json") for finding in event.findings]),
-                    event.budget.model_dump_json() if event.budget else None,
-                ),
-            )
+        record = EventRecord(
+            id=event.id,
+            timestamp=event.timestamp,
+            type=event.type,
+            severity=event.severity,
+            source=event.source,
+            payload_summary=event.payload_summary,
+            correlation_id=event.correlation_id,
+            data_json=_json_dump(event.data),
+            findings_json=_json_dump(
+                [finding.model_dump(mode="json") for finding in event.findings]
+            ),
+            budget_json=event.budget.model_dump_json() if event.budget else None,
+        )
+        with db_session(self._settings) as session:
+            session.merge(record)
 
     def store_check_result(self, result: ScheduledCheckResult) -> str:
         check_id = generate_id()
-        with db_connection(self._settings) as connection:
-            connection.execute(
-                """
-                INSERT INTO check_results (
-                    id, timestamp, check_name, source, status, severity, summary,
-                    evidence_json, findings_json, suggested_actions_json, duration_ms,
-                    skipped_reason, correlation_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    check_id,
-                    get_utc_now(),
-                    result.check,
-                    result.source,
-                    result.status.value
-                    if isinstance(result.status, CheckStatus)
-                    else str(result.status),
-                    result.severity,
-                    result.summary,
-                    _json_dump([item.model_dump(mode="json") for item in result.evidence]),
-                    _json_dump([item.model_dump(mode="json") for item in result.findings]),
-                    _json_dump(
-                        [item.model_dump(mode="json") for item in result.suggested_actions]
-                    ),
-                    result.duration_ms,
-                    result.skipped_reason,
-                    result.correlation_id,
-                ),
-            )
+        status = (
+            result.status.value if isinstance(result.status, CheckStatus) else str(result.status)
+        )
+        record = CheckResultRecord(
+            id=check_id,
+            timestamp=get_utc_now(),
+            check_name=result.check,
+            source=result.source,
+            status=status,
+            severity=result.severity,
+            summary=result.summary,
+            evidence_json=_json_dump([item.model_dump(mode="json") for item in result.evidence]),
+            findings_json=_json_dump(
+                [item.model_dump(mode="json") for item in result.findings]
+            ),
+            suggested_actions_json=_json_dump(
+                [item.model_dump(mode="json") for item in result.suggested_actions]
+            ),
+            duration_ms=result.duration_ms,
+            skipped_reason=result.skipped_reason,
+            correlation_id=result.correlation_id,
+        )
+        with db_session(self._settings) as session:
+            session.add(record)
         return check_id
 
     def recent_events(self, limit: int = 50) -> list[Event]:
         safe_limit = min(max(limit, 1), 500)
-        with db_connection(self._settings) as connection:
-            rows = connection.execute(
-                """
-                SELECT * FROM events
-                ORDER BY timestamp DESC
-                LIMIT ?
-                """,
-                (safe_limit,),
-            ).fetchall()
-        return [_event_from_row(row) for row in rows]
+        statement = (
+            select(EventRecord)
+            .order_by(col(EventRecord.timestamp).desc())
+            .limit(safe_limit)
+        )
+        with db_session(self._settings) as session:
+            records = session.exec(statement).all()
+        return [_event_from_record(record) for record in records]
 
     def events_for_incident(self, incident: IncidentSummary, limit: int = 200) -> list[Event]:
         safe_limit = min(max(limit, 1), 500)
-        query = """
-            SELECT * FROM events
-            WHERE source = ?
-              AND severity IN ('warning', 'critical')
-        """
-        params: list[Any] = [incident.source]
+        statement = (
+            select(EventRecord)
+            .where(EventRecord.source == incident.source)
+            .where(col(EventRecord.severity).in_(["warning", "critical"]))
+            .order_by(col(EventRecord.timestamp).asc())
+            .limit(safe_limit)
+        )
         if incident.correlation_id:
-            query += " AND correlation_id = ?"
-            params.append(incident.correlation_id)
-        query += " ORDER BY timestamp ASC LIMIT ?"
-        params.append(safe_limit)
-        with db_connection(self._settings) as connection:
-            rows = connection.execute(query, params).fetchall()
-        return [_event_from_row(row) for row in rows]
+            statement = statement.where(EventRecord.correlation_id == incident.correlation_id)
+        with db_session(self._settings) as session:
+            records = session.exec(statement).all()
+        return [_event_from_record(record) for record in records]
 
     def prune(self, older_than: datetime) -> int:
-        cutoff = older_than.isoformat()
-        with db_connection(self._settings) as connection:
-            cursor = connection.execute("DELETE FROM events WHERE timestamp < ?", (cutoff,))
-            return int(cursor.rowcount)
+        statement = delete(EventRecord).where(
+            col(EventRecord.timestamp) < older_than.isoformat()
+        )
+        with db_session(self._settings) as session:
+            result = session.exec(statement)
+            return int(result.rowcount or 0)
 
     def prune_check_results(self, older_than: datetime) -> int:
-        cutoff = older_than.isoformat()
-        with db_connection(self._settings) as connection:
-            cursor = connection.execute(
-                "DELETE FROM check_results WHERE timestamp < ?",
-                (cutoff,),
-            )
-            return int(cursor.rowcount)
+        statement = delete(CheckResultRecord).where(
+            col(CheckResultRecord.timestamp) < older_than.isoformat()
+        )
+        with db_session(self._settings) as session:
+            result = session.exec(statement)
+            return int(result.rowcount or 0)
 
 
 class AuditRepository:
@@ -144,74 +134,59 @@ class AuditRepository:
         self._settings = settings or get_settings()
 
     def create(self, receipt: AuditReceipt) -> None:
-        with db_connection(self._settings) as connection:
-            connection.execute(
-                """
-                INSERT OR REPLACE INTO audit_records (
-                    id, timestamp, tool_name, caller, arguments_json, safety,
-                    confirmation_status, result, result_data_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    receipt.id,
-                    receipt.timestamp,
-                    receipt.tool_name,
-                    receipt.caller,
-                    _json_dump(receipt.arguments),
-                    receipt.safety,
-                    receipt.confirmation_status,
-                    receipt.result,
-                    _json_dump(receipt.result_data) if receipt.result_data is not None else None,
-                ),
-            )
+        record = AuditRecord(
+            id=receipt.id,
+            timestamp=receipt.timestamp,
+            tool_name=receipt.tool_name,
+            caller=receipt.caller,
+            arguments_json=_json_dump(receipt.arguments),
+            safety=receipt.safety,
+            confirmation_status=receipt.confirmation_status,
+            result=receipt.result,
+            result_data_json=_json_dump(receipt.result_data)
+            if receipt.result_data is not None
+            else None,
+        )
+        with db_session(self._settings) as session:
+            session.merge(record)
 
     def update_result(self, audit_id: str, *, result: str, result_data: Any = None) -> None:
-        with db_connection(self._settings) as connection:
-            connection.execute(
-                """
-                UPDATE audit_records
-                SET result = ?, result_data_json = ?
-                WHERE id = ?
-                """,
-                (
-                    result,
-                    _json_dump(result_data) if result_data is not None else None,
-                    audit_id,
-                ),
+        with db_session(self._settings) as session:
+            record = session.get(AuditRecord, audit_id)
+            if record is None:
+                return
+            record.result = result
+            record.result_data_json = (
+                _json_dump(result_data) if result_data is not None else None
             )
+            session.add(record)
 
     def recent(self, limit: int = 50) -> list[AuditReceipt]:
         safe_limit = min(max(limit, 1), 500)
-        with db_connection(self._settings) as connection:
-            rows = connection.execute(
-                """
-                SELECT * FROM audit_records
-                ORDER BY timestamp DESC
-                LIMIT ?
-                """,
-                (safe_limit,),
-            ).fetchall()
-        return [_audit_from_row(row) for row in rows]
+        statement = (
+            select(AuditRecord)
+            .order_by(col(AuditRecord.timestamp).desc())
+            .limit(safe_limit)
+        )
+        with db_session(self._settings) as session:
+            records = session.exec(statement).all()
+        return [_audit_from_record(record) for record in records]
 
     def by_ids(self, audit_ids: list[str]) -> list[AuditReceipt]:
         if not audit_ids:
             return []
-        placeholders = ",".join("?" for _ in audit_ids)
-        with db_connection(self._settings) as connection:
-            rows = connection.execute(
-                f"SELECT * FROM audit_records WHERE id IN ({placeholders})",
-                audit_ids,
-            ).fetchall()
-        return [_audit_from_row(row) for row in rows]
+        statement = select(AuditRecord).where(col(AuditRecord.id).in_(audit_ids))
+        with db_session(self._settings) as session:
+            records = session.exec(statement).all()
+        return [_audit_from_record(record) for record in records]
 
     def prune(self, older_than: datetime) -> int:
-        cutoff = older_than.isoformat()
-        with db_connection(self._settings) as connection:
-            cursor = connection.execute(
-                "DELETE FROM audit_records WHERE timestamp < ?",
-                (cutoff,),
-            )
-            return int(cursor.rowcount)
+        statement = delete(AuditRecord).where(
+            col(AuditRecord.timestamp) < older_than.isoformat()
+        )
+        with db_session(self._settings) as session:
+            result = session.exec(statement)
+            return int(result.rowcount or 0)
 
 
 class IncidentRepository:
@@ -245,8 +220,7 @@ class IncidentRepository:
                 if event.data.get("audit_id") is not None
             ]
             audits = {
-                audit.id: audit
-                for audit in AuditRepository(self._settings).by_ids(audit_ids)
+                audit.id: audit for audit in AuditRepository(self._settings).by_ids(audit_ids)
             }
             timeline = [_timeline_entry(event) for event in events]
             for audit in audits.values():
@@ -265,36 +239,30 @@ class IncidentRepository:
         return None
 
     def prune(self, older_than_resolved: datetime, older_than_critical: datetime) -> int:
-        with db_connection(self._settings) as connection:
-            resolved_cursor = connection.execute(
-                """
-                DELETE FROM incidents
-                WHERE pinned = 0
-                  AND status = 'resolved'
-                  AND updated_at < ?
-                """,
-                (older_than_resolved.isoformat(),),
-            )
-            critical_cursor = connection.execute(
-                """
-                DELETE FROM incidents
-                WHERE pinned = 0
-                  AND status = 'closed'
-                  AND severity = 'critical'
-                  AND updated_at < ?
-                """,
-                (older_than_critical.isoformat(),),
-            )
-            return int(resolved_cursor.rowcount) + int(critical_cursor.rowcount)
+        resolved = (
+            delete(IncidentRecord)
+            .where(col(IncidentRecord.pinned).is_(False))
+            .where(col(IncidentRecord.status) == "resolved")
+            .where(col(IncidentRecord.updated_at) < older_than_resolved.isoformat())
+        )
+        critical = (
+            delete(IncidentRecord)
+            .where(col(IncidentRecord.pinned).is_(False))
+            .where(col(IncidentRecord.status) == "closed")
+            .where(col(IncidentRecord.severity) == "critical")
+            .where(col(IncidentRecord.updated_at) < older_than_critical.isoformat())
+        )
+        with db_session(self._settings) as session:
+            resolved_result = session.exec(resolved)
+            critical_result = session.exec(critical)
+            return int(resolved_result.rowcount or 0) + int(critical_result.rowcount or 0)
 
     def _summary_from_events(self, events: list[Event]) -> IncidentSummary:
         ordered = sorted(events, key=lambda event: event.timestamp)
         first = ordered[0]
         last = ordered[-1]
         severity = (
-            "critical"
-            if any(event.severity == "critical" for event in ordered)
-            else "warning"
+            "critical" if any(event.severity == "critical" for event in ordered) else "warning"
         )
         incident_key = first.correlation_id or f"{first.source}:{first.type}"
         return IncidentSummary(
@@ -330,32 +298,32 @@ def prune_durable_history(settings: AppSettings | None = None) -> dict[str, int]
     }
 
 
-def _event_from_row(row: sqlite3.Row) -> Event:
+def _event_from_record(record: EventRecord) -> Event:
     return Event(
-        id=row["id"],
-        timestamp=row["timestamp"],
-        type=row["type"],
-        severity=row["severity"],
-        source=row["source"],
-        payload_summary=row["payload_summary"],
-        correlation_id=row["correlation_id"],
-        data=_json_load(row["data_json"], {}),
-        findings=_json_load(row["findings_json"], []),
-        budget=_json_load(row["budget_json"], None),
+        id=record.id,
+        timestamp=record.timestamp,
+        type=record.type,
+        severity=record.severity,
+        source=record.source,
+        payload_summary=record.payload_summary,
+        correlation_id=record.correlation_id,
+        data=_json_load(record.data_json, {}),
+        findings=_json_load(record.findings_json, []),
+        budget=_json_load(record.budget_json, None),
     )
 
 
-def _audit_from_row(row: sqlite3.Row) -> AuditReceipt:
+def _audit_from_record(record: AuditRecord) -> AuditReceipt:
     return AuditReceipt(
-        id=row["id"],
-        timestamp=row["timestamp"],
-        tool_name=row["tool_name"],
-        caller=row["caller"],
-        arguments=_json_load(row["arguments_json"], {}),
-        safety=row["safety"],
-        confirmation_status=row["confirmation_status"],
-        result=row["result"],
-        result_data=_json_load(row["result_data_json"], None),
+        id=record.id,
+        timestamp=record.timestamp,
+        tool_name=record.tool_name,
+        caller=record.caller,
+        arguments=_json_load(record.arguments_json, {}),
+        safety=record.safety,
+        confirmation_status=record.confirmation_status,
+        result=record.result,
+        result_data=_json_load(record.result_data_json, None),
     )
 
 
