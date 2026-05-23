@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from agent.tools.base import ToolOutputMode
 from agent.tools.registry import ToolRegistry
 from schemas.python.docker import DockerReadLogsArgs, DockerRestartLoopArgs
 from tools import docker_tool
@@ -88,8 +89,30 @@ def test_log_reads_are_bounded(monkeypatch) -> None:
     result = docker_tool.read_logs(DockerReadLogsArgs(container="plex", lines=2, max_bytes=10))
 
     assert result.success is True
+    assert result.output_mode == ToolOutputMode.SUMMARY
+    assert result.raw_data_withheld is True
     assert isinstance(result.data, dict)
     assert result.data["truncated"] is True
+    assert "logs" not in result.data
+    assert result.raw_bytes is not None and result.raw_bytes <= 10
+
+
+def test_raw_log_reads_are_explicit_and_bounded(monkeypatch) -> None:
+    monkeypatch.setattr(docker_tool, "_docker_client", lambda: FakeClient())
+
+    result = docker_tool.read_logs(
+        DockerReadLogsArgs(
+            container="plex",
+            lines=2,
+            max_bytes=10,
+            output_mode=ToolOutputMode.RAW,
+        )
+    )
+
+    assert result.success is True
+    assert result.output_mode == ToolOutputMode.RAW
+    assert result.raw_data_withheld is False
+    assert isinstance(result.data, dict)
     assert len(result.data["logs"].encode()) <= 10
 
 

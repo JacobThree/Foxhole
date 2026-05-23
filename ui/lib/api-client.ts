@@ -45,6 +45,10 @@ export interface ToolResult {
   data: unknown;
   error: string | null;
   duration_ms: number;
+  output_mode: string;
+  raw_data_withheld: boolean;
+  raw_line_count: number | null;
+  raw_bytes: number | null;
   write_action: {
     requested: boolean;
     safety: string;
@@ -73,6 +77,23 @@ export interface ChatResponse {
   answer: string;
   tool_traces: ToolTrace[];
   findings: DiagnosticFinding[];
+  budget: AgentBudgetMetadata;
+}
+
+export interface AgentBudgetMetadata {
+  model_alias: string;
+  model_call_count: number;
+  max_model_calls: number | null;
+  tool_call_count: number;
+  max_tool_calls: number | null;
+  tool_schema_count: number;
+  log_line_count: number;
+  token_budget: number | null;
+  estimated_tokens_used: number | null;
+  estimated_input_tokens: number | null;
+  estimated_output_tokens: number | null;
+  estimated_cost_usd: number | null;
+  stopped_reason: string | null;
 }
 
 export interface ReadyResponse {

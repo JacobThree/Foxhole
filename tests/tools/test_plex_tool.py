@@ -4,6 +4,7 @@ import httpx
 from pydantic import SecretStr
 
 from agent.settings import AppSettings
+from agent.tools.base import ToolOutputMode
 from agent.tools.registry import ToolRegistry
 from schemas.python.plex import (
     PlexBufferingDiagnosisArgs,
@@ -133,11 +134,34 @@ def test_analyze_logs_detects_sqlite_and_transcode_errors(tmp_path) -> None:
     )
 
     assert result.success is True
+    assert result.output_mode == ToolOutputMode.DIAGNOSTIC
+    assert result.raw_data_withheld is True
     assert isinstance(result.data, dict)
     counts = result.data["finding_counts"]
     assert counts["sqlite_busy"] == 1
     assert counts["transcode_error"] == 1
     assert counts["slow_sql"] == 1
+    assert "raw_excerpt" not in result.data
+
+
+def test_analyze_logs_raw_mode_is_bounded(tmp_path) -> None:
+    log = tmp_path / "Plex Media Server.log"
+    log.write_text("\n".join(f"line {index}" for index in range(20)))
+
+    result = plex_tool.analyze_logs(
+        PlexLogAnalysisArgs(
+            log_path=str(log),
+            max_bytes=4096,
+            max_lines=3,
+            output_mode=ToolOutputMode.RAW,
+        )
+    )
+
+    assert result.success is True
+    assert result.raw_data_withheld is False
+    assert result.raw_line_count == 3
+    assert isinstance(result.data, dict)
+    assert result.data["raw_excerpt"] == "line 17\nline 18\nline 19"
 
 
 def test_analyze_logs_missing_path_returns_unavailable(tmp_path) -> None:

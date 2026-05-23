@@ -3,7 +3,13 @@
 import { type FormEvent, useState } from "react";
 import { ConfirmationPanel } from "@/components/confirmation-panel";
 import { ToolCallCard } from "@/components/tool-call-card";
-import { ChatResponse, ToolTrace, fetchApi, isApiError } from "@/lib/api-client";
+import {
+  AgentBudgetMetadata,
+  ChatResponse,
+  ToolTrace,
+  fetchApi,
+  isApiError,
+} from "@/lib/api-client";
 import { Send } from "lucide-react";
 
 type Message =
@@ -25,6 +31,36 @@ function statusText(error: unknown) {
   if (error.status === 401) return "Session expired. Open Settings and sign in again.";
   if (error.status === 503) return "Backend is not ready. Check the API token and Redis settings.";
   return `Request failed with ${error.status}.`;
+}
+
+function formatCost(value: number | null) {
+  if (value === null) return "n/a";
+  return `$${value.toFixed(4)}`;
+}
+
+function BudgetStrip({ budget }: { budget: AgentBudgetMetadata }) {
+  return (
+    <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-800 pt-3 text-xs text-slate-500">
+      <span>
+        Models {budget.model_call_count}
+        {budget.max_model_calls ? `/${budget.max_model_calls}` : ""}
+      </span>
+      <span>
+        Tools {budget.tool_call_count}
+        {budget.max_tool_calls ? `/${budget.max_tool_calls}` : ""}
+      </span>
+      <span>Schemas {budget.tool_schema_count}</span>
+      <span>Log lines {budget.log_line_count}</span>
+      <span>
+        Tokens {budget.estimated_tokens_used ?? 0}
+        {budget.token_budget ? `/${budget.token_budget}` : ""}
+      </span>
+      <span>Cost {formatCost(budget.estimated_cost_usd)}</span>
+      {budget.stopped_reason && (
+        <span className="basis-full text-amber-300">{budget.stopped_reason}</span>
+      )}
+    </div>
+  );
 }
 
 export default function ChatPage() {
@@ -149,6 +185,8 @@ export default function ChatPage() {
                         success: trace.result.success,
                         data: trace.result.data,
                         error: trace.result.error,
+                        output_mode: trace.result.output_mode,
+                        raw_data_withheld: trace.result.raw_data_withheld,
                       }}
                     />
                     {trace.result.write_action.confirmation_required && (
@@ -165,6 +203,8 @@ export default function ChatPage() {
                     )}
                   </div>
                 ))}
+
+                <BudgetStrip budget={message.response.budget} />
               </div>
             );
           })}

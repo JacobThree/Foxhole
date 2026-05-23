@@ -4,6 +4,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
+from agent.tools.base import ToolOutputMode
+
 
 class DockerContainerPort(BaseModel):
     private_port: int | None = None
@@ -34,8 +36,9 @@ class DockerInspectContainerArgs(BaseModel):
 
 class DockerReadLogsArgs(BaseModel):
     container: str = Field(min_length=1)
-    lines: int = Field(ge=1, le=1000)
-    max_bytes: int = Field(ge=1, le=1_048_576)
+    lines: int = Field(default=200, ge=1, le=1000)
+    max_bytes: int = Field(default=65_536, ge=1, le=1_048_576)
+    output_mode: ToolOutputMode = ToolOutputMode.SUMMARY
 
 
 class DockerRestartLoopArgs(BaseModel):

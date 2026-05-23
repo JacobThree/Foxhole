@@ -3,7 +3,9 @@ from pydantic import BaseModel, SecretStr
 from agent.settings import AppSettings
 from agent.tools.base import ToolResult, ToolSafety
 from agent.tools.registry import (
+    ToolIntent,
     ToolRegistry,
+    classify_tool_intents,
     integration_capabilities,
     register_builtin_tools,
 )
@@ -49,6 +51,16 @@ def test_duplicate_tool_names_fail() -> None:
         raise AssertionError("duplicate registration should fail")
 
 
+def test_schemas_preserves_explicit_empty_selection() -> None:
+    registry = ToolRegistry()
+
+    @registry.register(name="echo", description="Echo a value.", args_model=EchoArgs)
+    def echo(arguments: BaseModel) -> ToolResult:
+        return ToolResult(success=True, data=arguments.model_dump())
+
+    assert registry.schemas([]) == []
+
+
 def test_tool_result_has_stable_envelope() -> None:
     result = ToolResult(success=False, error="failed")
 
@@ -81,3 +93,72 @@ def test_integration_capabilities_follow_configuration_without_secrets() -> None
     assert by_name["plex"].capabilities == []
     assert by_name["sonarr"].missing_configuration == []
     assert "secret-key" not in str([item.model_dump() for item in capabilities])
+
+
+def test_intent_classification_scopes_media_tools() -> None:
+    settings = AppSettings(
+        docker_enabled=True,
+        plex_enabled=True,
+        plex_base_url="http://plex.local:32400",
+        plex_token=SecretStr("secret-token"),
+        sonarr_enabled=True,
+        sonarr_base_url="http://sonarr.local:8989",
+        sonarr_api_key=SecretStr("secret-key"),
+        tautulli_enabled=True,
+        tautulli_base_url="http://tautulli.local:8181",
+        tautulli_api_key=SecretStr("tautulli-key"),
+        pihole_enabled=True,
+        pihole_base_url="http://pihole.local/admin",
+        pihole_api_token=SecretStr("pihole-key"),
+    )
+    registry = ToolRegistry()
+    register_builtin_tools(registry, settings=settings)
+
+    selected_names = {tool.name for tool in registry.list_for_message("Why is Plex buffering?")}
+
+    assert ToolIntent.MEDIA in classify_tool_intents("Why is Plex buffering?")
+    assert "plex_active_sessions" in selected_names
+    assert "docker_list_containers" in selected_names
+    assert "tautulli_recent_history" in selected_names
+    assert "network_pihole_summary" not in selected_names
+
+
+def test_intent_classification_scopes_network_tools() -> None:
+    settings = AppSettings(
+        docker_enabled=True,
+        pihole_enabled=True,
+        pihole_base_url="http://pihole.local/admin",
+        pihole_api_token=SecretStr("pihole-key"),
+        unbound_enabled=True,
+        unbound_host="unbound.local",
+    )
+    registry = ToolRegistry()
+    register_builtin_tools(registry, settings=settings)
+
+    selected_names = {tool.name for tool in registry.list_for_message("Find rogue MACs on LAN")}
+
+    assert ToolIntent.NETWORK in classify_tool_intents("Find rogue MACs on LAN")
+    assert "network_unknown_devices" in selected_names
+    assert "security_posture" in selected_names
+    assert "docker_list_containers" not in selected_names
+
+
+def test_unknown_intent_falls_back_to_read_only_tools() -> None:
+    registry = ToolRegistry()
+
+    @registry.register(name="lookup", description="Lookup.", args_model=EchoArgs)
+    def lookup(arguments: BaseModel) -> ToolResult:
+        return ToolResult(success=True, data=arguments.model_dump())
+
+    @registry.register(
+        name="restart",
+        description="Restart.",
+        args_model=EchoArgs,
+        safety=ToolSafety.REQUIRES_CONFIRMATION,
+    )
+    def restart(arguments: BaseModel) -> ToolResult:
+        return ToolResult(success=True, data=arguments.model_dump())
+
+    selected_names = {tool.name for tool in registry.list_for_message("What changed yesterday?")}
+
+    assert selected_names == {"lookup"}

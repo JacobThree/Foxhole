@@ -629,13 +629,13 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Plex/media prompts only load relevant Plex, Tautulli, Docker, storage, and media tools.
-- [ ] Network prompts only load relevant network/security tools.
-- [ ] Fallback behavior remains safe when intent is unknown.
+- [x] Plex/media prompts only load relevant Plex, Tautulli, Docker, storage, and media tools.
+- [x] Network prompts only load relevant network/security tools.
+- [x] Fallback behavior remains safe when intent is unknown.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/test_orchestrator.py tests/agent/tools/test_registry.py`
+- [x] Tests pass: `pytest tests/agent/test_orchestrator.py tests/agent/tools/test_registry.py`
 - [ ] Manual check: trace/debug output shows fewer schemas sent for targeted prompts.
 
 **Dependencies:** Task 1, Task 7
@@ -658,13 +658,13 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Docker/Plex log tools default to compact extracted patterns.
-- [ ] Raw/forensic mode is bounded by max lines and max bytes.
-- [ ] Chat traces show whether raw data was withheld or summarized.
+- [x] Docker/Plex log tools default to compact extracted patterns.
+- [x] Raw/forensic mode is bounded by max lines and max bytes.
+- [x] Chat traces show whether raw data was withheld or summarized.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools/test_docker_tool.py tests/tools/test_plex_tool.py tests/agent/test_orchestrator.py`
+- [x] Tests pass: `pytest tests/tools/test_docker_tool.py tests/tools/test_plex_tool.py tests/agent/test_orchestrator.py`
 - [ ] Manual check: asking for a diagnosis does not dump raw logs into the LLM context.
 
 **Dependencies:** Task 1, Task 17
@@ -688,14 +688,14 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Each chat response includes budget metadata.
-- [ ] Requests stop safely when max tool/model calls are exceeded.
-- [ ] UI displays tool calls, model calls, token estimates, and cost estimate when available.
+- [x] Each chat response includes budget metadata.
+- [x] Requests stop safely when max tool/model calls are exceeded.
+- [x] UI displays tool calls, model calls, token estimates, and cost estimate when available.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/test_chat.py tests/agent/test_orchestrator.py`
-- [ ] UI build passes: `pnpm build` from `ui/`.
+- [x] Tests pass: `pytest tests/agent/test_chat.py tests/agent/test_orchestrator.py`
+- [x] UI build passes: `pnpm build` from `ui/`.
 - [ ] Manual check: budget limit produces a clear answer instead of a runaway loop.
 
 **Dependencies:** Task 17, Task 18
@@ -714,9 +714,9 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 ### Checkpoint: Agent Is Controllable
 
-- [ ] Tool schemas are scoped to the request.
-- [ ] Raw logs are not included by default.
-- [ ] Users can see approximate diagnostic cost and execution budget.
+- [x] Tool schemas are scoped to the request.
+- [x] Raw logs are not included by default.
+- [x] Users can see approximate diagnostic cost and execution budget.
 
 ---
 

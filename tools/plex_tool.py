@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from agent.mock_mode import MockMode
 from agent.settings import AppSettings, get_settings
-from agent.tools.base import ToolResult
+from agent.tools.base import ToolOutputMode, ToolResult
 from agent.tools.registry import ToolRegistry
 from schemas.python.plex import (
     PlexBufferingDiagnosisArgs,
@@ -126,17 +126,35 @@ def analyze_logs(arguments: BaseModel) -> ToolResult:
     except OSError as exc:
         return ToolResult(success=False, error=f"Could not read Plex log: {exc}")
 
+    text = _tail_lines(text, args.max_lines)
     findings = _detect_findings(text, args.max_findings)
     counts: dict[str, int] = {}
     for finding in findings:
         counts[finding.category] = counts.get(finding.category, 0) + 1
+    raw_line_count = len(text.splitlines())
+    raw_bytes = len(text.encode())
+    include_raw = args.output_mode in {ToolOutputMode.RAW, ToolOutputMode.FORENSIC}
     return ToolResult(
         success=True,
+        output_mode=args.output_mode,
+        raw_data_withheld=not include_raw,
+        raw_line_count=raw_line_count,
+        raw_bytes=raw_bytes,
         data={
             "log_path": args.log_path,
-            "bytes_read": len(text.encode()),
+            "bytes_read": raw_bytes,
+            "lines_read": raw_line_count,
             "finding_counts": counts,
             "findings": [finding.model_dump(mode="json") for finding in findings],
+            **(
+                {"raw_excerpt": text}
+                if include_raw
+                else {
+                    "raw_logs": (
+                        "withheld; request output_mode=raw or forensic for bounded raw text"
+                    )
+                }
+            ),
         },
     )
 
@@ -293,6 +311,13 @@ def _read_tail(path: str, max_bytes: int) -> str:
             handle.seek(size - max_bytes)
         data = handle.read()
     return data.decode(errors="replace")
+
+
+def _tail_lines(text: str, max_lines: int) -> str:
+    lines = text.splitlines()
+    if len(lines) <= max_lines:
+        return text
+    return "\n".join(lines[-max_lines:])
 
 
 _LOG_PATTERNS: list[tuple[str, str, re.Pattern[str]]] = [

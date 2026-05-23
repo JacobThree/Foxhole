@@ -111,6 +111,10 @@ class AppSettings(BaseSettings):
     llm_vllm_api_base: str | None = "http://localhost:8001/v1"
     llm_timeout_seconds: float = Field(default=30, ge=1, le=300)
     llm_retries: int = Field(default=2, ge=0, le=5)
+    agent_max_tool_calls: int = Field(default=4, ge=1, le=20)
+    agent_max_model_calls: int = Field(default=2, ge=1, le=5)
+    agent_token_budget: int = Field(default=8_000, ge=1_000, le=200_000)
+    agent_estimated_cost_per_1k_tokens: float = Field(default=0.0, ge=0)
     write_stage: int = Field(default=1, ge=1, le=3)
     write_confirmation_secret: SecretStr | None = None
 
@@ -456,6 +460,12 @@ class AppSettings(BaseSettings):
                 "local_model": self.llm_local_model,
                 "vllm_model": self.llm_vllm_model,
                 "primary_api_key_configured": self.llm_primary_api_key is not None,
+            },
+            "agent_budget": {
+                "max_tool_calls": self.agent_max_tool_calls,
+                "max_model_calls": self.agent_max_model_calls,
+                "token_budget": self.agent_token_budget,
+                "estimated_cost_per_1k_tokens": self.agent_estimated_cost_per_1k_tokens,
             },
             "integrations": self.integration_status(),
             "integration_details": self.integration_details(),

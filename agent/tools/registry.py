@@ -4,6 +4,7 @@ import builtins
 import inspect
 import time
 from collections.abc import Awaitable, Callable
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
@@ -15,6 +16,76 @@ if TYPE_CHECKING:
     from schemas.python.events import IntegrationCapabilities
 
 ToolHandler = Callable[[BaseModel], ToolResult | Awaitable[ToolResult]]
+
+
+class ToolIntent(StrEnum):
+    MEDIA = "media"
+    NETWORK = "network"
+    STORAGE = "storage"
+    CONTAINERS = "containers"
+    SECURITY = "security"
+
+
+INTENT_KEYWORDS: dict[ToolIntent, tuple[str, ...]] = {
+    ToolIntent.MEDIA: (
+        "arr",
+        "buffer",
+        "download",
+        "import",
+        "jellyfin",
+        "media",
+        "movie",
+        "overseerr",
+        "plex",
+        "radarr",
+        "request",
+        "sonarr",
+        "tautulli",
+        "transcode",
+        "tv",
+    ),
+    ToolIntent.NETWORK: (
+        "client",
+        "dhcp",
+        "dns",
+        "lan",
+        "mac",
+        "network",
+        "pihole",
+        "pi-hole",
+        "query",
+        "rogue",
+        "subnet",
+        "unbound",
+        "wifi",
+    ),
+    ToolIntent.STORAGE: ("backup", "disk", "pbs", "proxmox", "storage", "zfs"),
+    ToolIntent.CONTAINERS: (
+        "container",
+        "docker",
+        "image",
+        "portainer",
+        "restart loop",
+        "socket",
+    ),
+    ToolIntent.SECURITY: ("privileged", "risk", "security", "vulnerability"),
+}
+
+INTENT_TOOL_PREFIXES: dict[ToolIntent, tuple[str, ...]] = {
+    ToolIntent.MEDIA: (
+        "plex_",
+        "arr_",
+        "tautulli_",
+        "overseerr_",
+        "media_",
+        "docker_",
+        "backup_",
+    ),
+    ToolIntent.NETWORK: ("network_", "security_"),
+    ToolIntent.STORAGE: ("backup_", "proxmox_", "docker_"),
+    ToolIntent.CONTAINERS: ("docker_", "portainer_", "security_"),
+    ToolIntent.SECURITY: ("security_", "docker_", "network_"),
+}
 
 
 class RegisteredTool:
@@ -96,8 +167,36 @@ class ToolRegistry:
     def list(self) -> builtins.list[RegisteredTool]:
         return list(self._tools.values())
 
-    def schemas(self) -> builtins.list[dict[str, Any]]:
-        return [tool.as_openai_tool() for tool in self.list()]
+    def list_for_message(self, message: str) -> builtins.list[RegisteredTool]:
+        intents = classify_tool_intents(message)
+        if not intents:
+            return [tool for tool in self.list() if tool.safety is ToolSafety.READ_ONLY]
+
+        prefixes = tuple(
+            prefix for intent in intents for prefix in INTENT_TOOL_PREFIXES.get(intent, ())
+        )
+        selected = [tool for tool in self.list() if tool.name.startswith(prefixes)]
+        if selected:
+            return selected
+        return [tool for tool in self.list() if tool.safety is ToolSafety.READ_ONLY]
+
+    def schemas(
+        self, tools: builtins.list[RegisteredTool] | None = None
+    ) -> builtins.list[dict[str, Any]]:
+        selected_tools = self.list() if tools is None else tools
+        return [tool.as_openai_tool() for tool in selected_tools]
+
+    def schemas_for_message(self, message: str) -> builtins.list[dict[str, Any]]:
+        return self.schemas(self.list_for_message(message))
+
+
+def classify_tool_intents(message: str) -> set[ToolIntent]:
+    normalized = message.casefold()
+    return {
+        intent
+        for intent, keywords in INTENT_KEYWORDS.items()
+        if any(keyword in normalized for keyword in keywords)
+    }
 
 
 default_registry = ToolRegistry()
@@ -108,8 +207,8 @@ INTEGRATION_TOOL_PREFIXES = {
     "plex": ("plex_",),
     "sonarr": ("arr_",),
     "radarr": ("arr_",),
-    "tautulli": ("observability_",),
-    "overseerr": ("observability_",),
+    "tautulli": ("tautulli_", "media_"),
+    "overseerr": ("overseerr_", "media_"),
     "portainer": ("portainer_",),
     "pihole": ("network_",),
     "unbound": ("network_",),

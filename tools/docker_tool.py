@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import re
 from collections.abc import Iterable
 from typing import Any
 
@@ -8,7 +9,7 @@ from pydantic import BaseModel
 
 from agent.mock_mode import MockMode
 from agent.settings import get_settings
-from agent.tools.base import ToolResult, ToolSafety
+from agent.tools.base import ToolOutputMode, ToolResult, ToolSafety
 from agent.tools.registry import ToolRegistry
 from schemas.python.docker import (
     DockerContainerActionArgs,
@@ -95,14 +96,35 @@ def read_logs(arguments: BaseModel) -> ToolResult:
         truncated = len(encoded) > args.max_bytes
         if truncated:
             text = encoded[-args.max_bytes :].decode(errors="replace")
+        raw_line_count = len(text.splitlines())
+        if args.output_mode in {ToolOutputMode.RAW, ToolOutputMode.FORENSIC}:
+            return ToolResult(
+                success=True,
+                output_mode=args.output_mode,
+                raw_data_withheld=False,
+                raw_line_count=raw_line_count,
+                raw_bytes=len(text.encode()),
+                data={
+                    "container": args.container,
+                    "lines_requested": args.lines,
+                    "max_bytes": args.max_bytes,
+                    "truncated": truncated,
+                    "logs": text,
+                },
+            )
         return ToolResult(
             success=True,
+            output_mode=ToolOutputMode.SUMMARY,
+            raw_data_withheld=True,
+            raw_line_count=raw_line_count,
+            raw_bytes=len(text.encode()),
             data={
                 "container": args.container,
                 "lines_requested": args.lines,
                 "max_bytes": args.max_bytes,
                 "truncated": truncated,
-                "logs": text,
+                "summary": _summarize_logs(text),
+                "raw_logs": "withheld; request output_mode=raw or forensic for bounded raw text",
             },
         )
     except Exception as exc:
@@ -258,6 +280,32 @@ def _reload(container: Any) -> None:
     reload_method = getattr(container, "reload", None)
     if callable(reload_method):
         reload_method()
+
+
+_LOG_SUMMARY_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    ("error", re.compile(r"\b(error|exception|failed|fatal)\b", re.IGNORECASE)),
+    ("warning", re.compile(r"\b(warn|warning)\b", re.IGNORECASE)),
+    ("restart", re.compile(r"\b(restart|restarting)\b", re.IGNORECASE)),
+    ("permission", re.compile(r"\b(denied|permission|unauthorized)\b", re.IGNORECASE)),
+]
+
+
+def _summarize_logs(text: str) -> dict[str, Any]:
+    counts = {name: 0 for name, _pattern in _LOG_SUMMARY_PATTERNS}
+    samples: list[dict[str, str]] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        for name, pattern in _LOG_SUMMARY_PATTERNS:
+            if pattern.search(stripped):
+                counts[name] += 1
+                if len(samples) < 5:
+                    samples.append({"category": name, "line": stripped[:300]})
+                break
+    return {
+        "line_count": len(text.splitlines()),
+        "pattern_counts": counts,
+        "sample_findings": samples,
+    }
 
 
 def _docker_error_result(exc: Exception) -> ToolResult:

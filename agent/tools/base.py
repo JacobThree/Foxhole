@@ -12,6 +12,13 @@ class ToolSafety(StrEnum):
     AUTONOMOUS_ALLOWED = "autonomous_allowed"
 
 
+class ToolOutputMode(StrEnum):
+    SUMMARY = "summary"
+    DIAGNOSTIC = "diagnostic"
+    RAW = "raw"
+    FORENSIC = "forensic"
+
+
 class WriteActionMetadata(BaseModel):
     requested: bool = False
     safety: ToolSafety = ToolSafety.READ_ONLY
@@ -25,6 +32,10 @@ class ToolResult(BaseModel):
     data: dict[str, Any] | list[Any] | str | int | float | bool | None = None
     error: str | None = None
     duration_ms: float = Field(default=0, ge=0)
+    output_mode: ToolOutputMode = ToolOutputMode.SUMMARY
+    raw_data_withheld: bool = False
+    raw_line_count: int | None = Field(default=None, ge=0)
+    raw_bytes: int | None = Field(default=None, ge=0)
     write_action: WriteActionMetadata = Field(default_factory=WriteActionMetadata)
 
 

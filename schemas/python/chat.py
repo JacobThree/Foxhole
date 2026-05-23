@@ -67,10 +67,18 @@ class DiagnosticFinding(BaseModel):
 
 class AgentBudgetMetadata(BaseModel):
     model_alias: str = "agent-primary"
+    model_call_count: int = Field(default=0, ge=0)
+    max_model_calls: int | None = Field(default=None, ge=1)
     tool_call_count: int = Field(default=0, ge=0)
     max_tool_calls: int | None = Field(default=None, ge=1)
+    tool_schema_count: int = Field(default=0, ge=0)
+    log_line_count: int = Field(default=0, ge=0)
     token_budget: int | None = Field(default=None, ge=1)
     estimated_tokens_used: int | None = Field(default=None, ge=0)
+    estimated_input_tokens: int | None = Field(default=None, ge=0)
+    estimated_output_tokens: int | None = Field(default=None, ge=0)
+    estimated_cost_usd: float | None = Field(default=None, ge=0)
+    stopped_reason: str | None = None
 
 
 class ChatRequest(BaseModel):
