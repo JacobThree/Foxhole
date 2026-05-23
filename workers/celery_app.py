@@ -20,9 +20,7 @@ celery_app.conf.update(
     },
     task_track_started=True,
     timezone="UTC",
-    task_annotations={
-        "*": {"rate_limit": "10/s", "max_retries": 3, "retry_backoff": True}
-    },
+    task_annotations={"*": {"rate_limit": "10/s", "max_retries": 3, "retry_backoff": True}},
     beat_schedule={
         "check-container-health": {
             "task": "tasks.check_container_health",

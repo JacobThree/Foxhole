@@ -8,6 +8,7 @@ from schemas.python.alerts import Alert
 
 logger = logging.getLogger(__name__)
 
+
 def dispatch_alert(alert: Alert) -> None:
     settings = get_settings()
     if settings.telegram.configured:

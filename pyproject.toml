@@ -53,4 +53,5 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 python_version = "3.12"
 strict = true
 warn_unused_configs = true
+warn_unused_ignores = false
 files = ["agent", "tools", "workers"]

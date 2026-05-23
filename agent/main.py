@@ -40,7 +40,7 @@ async def check_redis_ready(settings: Annotated[AppSettings, Depends(get_setting
     try:
         pong = await client.ping()
     finally:
-        await client.aclose()
+        await client.close()
     return bool(pong)
 
 
@@ -101,24 +101,27 @@ async def update_settings_endpoint(
     _: Annotated[None, Depends(require_bearer_token)],
 ) -> dict[str, Any]:
     from agent.settings import update_env_file
-    env_updates = {}
+
+    env_updates: dict[str, str | None] = {}
     for k, v in request.updates.items():
         if v is None:
             env_updates[f"FOXHOLE_{k.upper()}"] = None
         else:
             env_updates[f"FOXHOLE_{k.upper()}"] = str(v).lower() if isinstance(v, bool) else str(v)
-            
+
     update_env_file(env_updates)
     get_settings.cache_clear()
-    
-    # We must also clear the orchestrator tools cache so the updated settings 
+
+    # We must also clear the orchestrator tools cache so the updated settings
     # dynamically reload the registered tools without restarting the backend process.
     from agent.tools.registry import default_registry, register_builtin_tools
+
     default_registry._tools.clear()
     import agent.tools.registry as reg
+
     reg._builtins_registered = False
     register_builtin_tools(default_registry)
-    
+
     return get_settings().redacted_summary()
 
 
@@ -128,6 +131,6 @@ async def list_events(
     limit: int = 50,
 ) -> list[dict[str, Any]]:
     from agent.events import get_recent_events
+
     events = await get_recent_events(limit=limit)
     return [e.model_dump() for e in events]
-

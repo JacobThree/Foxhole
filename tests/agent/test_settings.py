@@ -50,4 +50,3 @@ def test_secret_redaction_excludes_raw_values() -> None:
 
 def test_redact_url_without_credentials_is_stable() -> None:
     assert redact_url("redis://localhost:6379/0") == "redis://localhost:6379/0"
-

@@ -18,9 +18,11 @@ from tools import network_tool
 
 def _settings(**overrides: Any) -> AppSettings:
     defaults: dict[str, Any] = {
-        "pihole_enabled": True, "pihole_base_url": "http://pihole.local",
+        "pihole_enabled": True,
+        "pihole_base_url": "http://pihole.local",
         "pihole_api_token": SecretStr("pi-token"),
-        "unbound_enabled": True, "unbound_host": "unbound.local",
+        "unbound_enabled": True,
+        "unbound_host": "unbound.local",
     }
     defaults.update(overrides)
     return AppSettings(**defaults)
@@ -52,9 +54,7 @@ def test_pihole_summary_sends_auth_token(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(
         network_tool,
         "_pihole_client",
-        lambda settings: httpx.Client(
-            base_url=str(settings.pihole_base_url), transport=transport
-        ),
+        lambda settings: httpx.Client(base_url=str(settings.pihole_base_url), transport=transport),
     )
 
     result = network_tool.pihole_summary(PiholeSummaryArgs())
@@ -77,9 +77,7 @@ def test_pihole_recent_queries_passes_limit(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(
         network_tool,
         "_pihole_client",
-        lambda settings: httpx.Client(
-            base_url=str(settings.pihole_base_url), transport=transport
-        ),
+        lambda settings: httpx.Client(base_url=str(settings.pihole_base_url), transport=transport),
     )
 
     result = network_tool.pihole_recent_queries(PiholeQueriesArgs(limit=25))
@@ -104,9 +102,7 @@ def test_pihole_empty_list_indicates_auth_failure(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(
         network_tool,
         "_pihole_client",
-        lambda settings: httpx.Client(
-            base_url=str(settings.pihole_base_url), transport=transport
-        ),
+        lambda settings: httpx.Client(base_url=str(settings.pihole_base_url), transport=transport),
     )
 
     result = network_tool.pihole_summary(PiholeSummaryArgs())

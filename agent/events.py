@@ -13,9 +13,11 @@ logger = logging.getLogger(__name__)
 STREAM_NAME = "foxhole:events"
 MAX_LEN = 10000
 
+
 async def get_redis() -> Any:
     settings = get_settings()
     return Redis.from_url(settings.redis_url, decode_responses=True)
+
 
 async def store_event(event: Event) -> None:
     try:
@@ -31,6 +33,7 @@ async def store_event(event: Event) -> None:
         await redis.aclose()
     except Exception as e:
         logger.error(f"Failed to store event to Redis: {e}")
+
 
 async def get_recent_events(limit: int = 50) -> list[Event]:
     try:

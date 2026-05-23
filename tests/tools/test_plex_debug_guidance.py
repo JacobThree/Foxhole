@@ -29,9 +29,7 @@ def test_debug_guidance_detects_verbose_keyword(tmp_path) -> None:
 
 
 def test_debug_guidance_missing_log_reports_missing(tmp_path) -> None:
-    result = plex_tool.debug_guidance(
-        PlexDebugGuidanceArgs(log_path=str(tmp_path / "missing.log"))
-    )
+    result = plex_tool.debug_guidance(PlexDebugGuidanceArgs(log_path=str(tmp_path / "missing.log")))
 
     assert result.success is True
     assert isinstance(result.data, dict)

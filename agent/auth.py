@@ -33,4 +33,3 @@ def require_bearer_token(
             detail="Invalid bearer token.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-

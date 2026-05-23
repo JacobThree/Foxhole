@@ -8,8 +8,10 @@ from pydantic import BaseModel, Field
 def get_utc_now() -> str:
     return datetime.now(UTC).isoformat()
 
+
 def generate_id() -> str:
     return str(uuid.uuid4())
+
 
 class Event(BaseModel):
     id: str = Field(default_factory=generate_id)

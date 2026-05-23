@@ -38,7 +38,9 @@ SESSIONS_XML = """
 
 
 def _settings() -> AppSettings:
-    return AppSettings(plex_enabled=True, plex_base_url="http://plex.local:32400", plex_token=SecretStr("tok"))
+    return AppSettings(
+        plex_enabled=True, plex_base_url="http://plex.local:32400", plex_token=SecretStr("tok")
+    )
 
 
 def _patch_client(monkeypatch, transport: httpx.MockTransport) -> None:
@@ -139,9 +141,7 @@ def test_analyze_logs_detects_sqlite_and_transcode_errors(tmp_path) -> None:
 
 
 def test_analyze_logs_missing_path_returns_unavailable(tmp_path) -> None:
-    result = plex_tool.analyze_logs(
-        PlexLogAnalysisArgs(log_path=str(tmp_path / "missing.log"))
-    )
+    result = plex_tool.analyze_logs(PlexLogAnalysisArgs(log_path=str(tmp_path / "missing.log")))
 
     assert result.success is False
     assert "not available" in (result.error or "")

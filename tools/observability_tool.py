@@ -97,9 +97,7 @@ def fault_timeline(arguments: BaseModel) -> ToolResult:
 
     if settings.overseerr.configured:
         sources.append("overseerr")
-        failed = overseerr_failed_requests(
-            OverseerrFailedRequestsArgs(take=args.overseerr_take)
-        )
+        failed = overseerr_failed_requests(OverseerrFailedRequestsArgs(take=args.overseerr_take))
         if failed.success and isinstance(failed.data, dict):
             for row in failed.data.get("requests", []):
                 events.append(
@@ -126,9 +124,7 @@ def _tautulli_call(params: dict[str, Any]) -> ToolResult:
     settings = get_settings()
     if not settings.tautulli.configured:
         return ToolResult(success=False, error="Tautulli integration is not configured.")
-    api_key = (
-        settings.tautulli_api_key.get_secret_value() if settings.tautulli_api_key else ""
-    )
+    api_key = settings.tautulli_api_key.get_secret_value() if settings.tautulli_api_key else ""
     merged: dict[str, Any] = {"apikey": api_key, **params}
     try:
         with _tautulli_client(settings) as client:
@@ -143,9 +139,7 @@ def _tautulli_client(settings: AppSettings) -> httpx.Client:
     return httpx.Client(base_url=str(settings.tautulli_base_url), timeout=10)
 
 
-def _overseerr_call(
-    path: str, *, params: dict[str, Any] | None = None
-) -> ToolResult:
+def _overseerr_call(path: str, *, params: dict[str, Any] | None = None) -> ToolResult:
     settings = get_settings()
     if not settings.overseerr.configured:
         return ToolResult(success=False, error="Overseerr integration is not configured.")

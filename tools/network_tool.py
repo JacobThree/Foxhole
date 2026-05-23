@@ -296,9 +296,6 @@ def _refuse_unsafe_subnet(subnet: str, settings: AppSettings) -> ToolResult | No
     if not any(network.subnet_of(block) for block in allowed):  # type: ignore[arg-type]
         return ToolResult(
             success=False,
-            error=(
-                f"Refusing to scan {subnet}: not within configured "
-                "network_allowed_subnets."
-            ),
+            error=(f"Refusing to scan {subnet}: not within configured network_allowed_subnets."),
         )
     return None

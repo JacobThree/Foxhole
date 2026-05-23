@@ -19,7 +19,8 @@ from tools import arr_tool
 
 def _settings() -> AppSettings:
     return AppSettings(
-        sonarr_enabled=True, sonarr_base_url="http://sonarr.local",
+        sonarr_enabled=True,
+        sonarr_base_url="http://sonarr.local",
         sonarr_api_key=SecretStr("sonarr-key"),
     )
 
@@ -63,9 +64,7 @@ def test_unconfirmed_profile_update_is_blocked() -> None:
     args = ArrQualityProfileUpdateArgs(
         service=ArrService.SONARR, profile_id=4, name="HD-1080p", upgrade_allowed=False
     )
-    policy = WritePolicy(
-        AppSettings(write_stage=2, write_confirmation_secret=SecretStr("secret"))
-    )
+    policy = WritePolicy(AppSettings(write_stage=2, write_confirmation_secret=SecretStr("secret")))
 
     decision = policy.evaluate(tool=tool, caller="test", arguments=args)
 
@@ -113,9 +112,7 @@ def test_profile_update_returns_before_after_diff(monkeypatch) -> None:
 
 
 def test_queue_item_action_calls_delete_with_flags(monkeypatch) -> None:
-    captured = _patch(
-        monkeypatch, lambda req: httpx.Response(200, json={})
-    )
+    captured = _patch(monkeypatch, lambda req: httpx.Response(200, json={}))
 
     result = arr_tool.queue_item_action(
         ArrQueueItemActionArgs(
@@ -145,9 +142,7 @@ def test_audit_log_records_confirmed_write() -> None:
     )
     token = policy.confirmation_token(tool.name, "test", args.model_dump(mode="json"))
 
-    decision = policy.evaluate(
-        tool=tool, caller="test", arguments=args, confirmation_token=token
-    )
+    decision = policy.evaluate(tool=tool, caller="test", arguments=args, confirmation_token=token)
 
     assert decision.allowed is True
     assert audit_log.events[0].confirmation_status == "confirmed"

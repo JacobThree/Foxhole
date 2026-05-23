@@ -42,7 +42,7 @@ def test_refuse_unsafe_subnet_rejects_unallowed_private_ips(
 
 def test_network_scan_succeeds_for_allowed_subnet(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(network_tool, "get_settings", _settings)
-    
+
     xml_output = """<?xml version="1.0" ?>
     <nmaprun>
       <host>
@@ -69,7 +69,7 @@ def test_network_scan_succeeds_for_allowed_subnet(monkeypatch: pytest.MonkeyPatc
 
 def test_unknown_devices_filters_known_macs(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(network_tool, "get_settings", _settings)
-    
+
     xml_output = """<?xml version="1.0" ?>
     <nmaprun>
       <host>

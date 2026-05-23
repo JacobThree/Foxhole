@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from typing import Any
 
@@ -15,7 +16,11 @@ class IntegrationSettings(BaseSettings):
 
     @property
     def configured(self) -> bool:
-        return self.enabled and self.base_url is not None and (self.api_key is not None or self.token is not None)
+        return (
+            self.enabled
+            and self.base_url is not None
+            and (self.api_key is not None or self.token is not None)
+        )
 
 
 class ProxmoxSettings(BaseSettings):
@@ -29,7 +34,12 @@ class ProxmoxSettings(BaseSettings):
 
     @property
     def configured(self) -> bool:
-        return self.enabled and self.host is not None and self.token_id is not None and self.token_secret is not None
+        return (
+            self.enabled
+            and self.host is not None
+            and self.token_id is not None
+            and self.token_secret is not None
+        )
 
 
 class DockerSettings(BaseSettings):
@@ -179,31 +189,51 @@ class AppSettings(BaseSettings):
 
     @property
     def docker(self) -> DockerSettings:
-        return DockerSettings(enabled=self.docker_enabled, socket_proxy_url=self.docker_socket_proxy_url)
+        return DockerSettings(
+            enabled=self.docker_enabled, socket_proxy_url=self.docker_socket_proxy_url
+        )
 
     @property
     def telegram(self) -> TelegramSettings:
-        return TelegramSettings(enabled=self.telegram_enabled, bot_token=self.telegram_bot_token, chat_id=self.telegram_chat_id)
+        return TelegramSettings(
+            enabled=self.telegram_enabled,
+            bot_token=self.telegram_bot_token,
+            chat_id=self.telegram_chat_id,
+        )
 
     @property
     def plex(self) -> IntegrationSettings:
-        return IntegrationSettings(enabled=self.plex_enabled, base_url=self.plex_base_url, token=self.plex_token)
+        return IntegrationSettings(
+            enabled=self.plex_enabled, base_url=self.plex_base_url, token=self.plex_token
+        )
 
     @property
     def sonarr(self) -> IntegrationSettings:
-        return IntegrationSettings(enabled=self.sonarr_enabled, base_url=self.sonarr_base_url, api_key=self.sonarr_api_key)
+        return IntegrationSettings(
+            enabled=self.sonarr_enabled, base_url=self.sonarr_base_url, api_key=self.sonarr_api_key
+        )
 
     @property
     def radarr(self) -> IntegrationSettings:
-        return IntegrationSettings(enabled=self.radarr_enabled, base_url=self.radarr_base_url, api_key=self.radarr_api_key)
+        return IntegrationSettings(
+            enabled=self.radarr_enabled, base_url=self.radarr_base_url, api_key=self.radarr_api_key
+        )
 
     @property
     def tautulli(self) -> IntegrationSettings:
-        return IntegrationSettings(enabled=self.tautulli_enabled, base_url=self.tautulli_base_url, api_key=self.tautulli_api_key)
+        return IntegrationSettings(
+            enabled=self.tautulli_enabled,
+            base_url=self.tautulli_base_url,
+            api_key=self.tautulli_api_key,
+        )
 
     @property
     def overseerr(self) -> IntegrationSettings:
-        return IntegrationSettings(enabled=self.overseerr_enabled, base_url=self.overseerr_base_url, api_key=self.overseerr_api_key)
+        return IntegrationSettings(
+            enabled=self.overseerr_enabled,
+            base_url=self.overseerr_base_url,
+            api_key=self.overseerr_api_key,
+        )
 
     @property
     def portainer_configured(self) -> bool:
@@ -211,15 +241,23 @@ class AppSettings(BaseSettings):
         has_jwt_credentials = (
             self.portainer_username is not None and self.portainer_password is not None
         )
-        return self.portainer_enabled and self.portainer_base_url is not None and (has_token or has_jwt_credentials)
+        return (
+            self.portainer_enabled
+            and self.portainer_base_url is not None
+            and (has_token or has_jwt_credentials)
+        )
 
     @property
     def pihole(self) -> IntegrationSettings:
-        return IntegrationSettings(enabled=self.pihole_enabled, base_url=self.pihole_base_url, token=self.pihole_api_token)
+        return IntegrationSettings(
+            enabled=self.pihole_enabled, base_url=self.pihole_base_url, token=self.pihole_api_token
+        )
 
     @property
     def unbound(self) -> UnboundSettings:
-        return UnboundSettings(enabled=self.unbound_enabled, host=self.unbound_host, port=self.unbound_port)
+        return UnboundSettings(
+            enabled=self.unbound_enabled, host=self.unbound_host, port=self.unbound_port
+        )
 
     def integration_status(self) -> dict[str, bool]:
         return {
@@ -259,14 +297,12 @@ def redact_url(value: str) -> str:
     return f"{scheme}://********@{host}" if scheme else f"********@{host}"
 
 
-import os
-
 def update_env_file(updates: dict[str, str | None], env_path: str = ".env") -> None:
     lines = []
     if os.path.exists(env_path):
-        with open(env_path, "r") as f:
+        with open(env_path) as f:
             lines = f.readlines()
-            
+
     new_lines = []
     keys_updated = set()
     for line in lines:
@@ -282,11 +318,11 @@ def update_env_file(updates: dict[str, str | None], env_path: str = ".env") -> N
             keys_updated.add(key)
         else:
             new_lines.append(line)
-            
+
     for k, v in updates.items():
         if k not in keys_updated and v is not None:
             new_lines.append(f"{k}={v}\n")
-            
+
     with open(env_path, "w") as f:
         f.writelines(new_lines)
 

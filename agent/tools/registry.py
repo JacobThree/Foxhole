@@ -105,6 +105,7 @@ def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
     if registry is default_registry and _builtins_registered:
         return
 
+    from agent.settings import get_settings
     from tools.arr_tool import register_tools as register_arr_tools
     from tools.arr_tool import register_write_tools as register_arr_write_tools
     from tools.backup_tool import register_tools as register_backup_tools
@@ -116,7 +117,6 @@ def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
     from tools.proxmox_tool import register_tools as register_proxmox_tools
     from tools.security_tool import register_tools as register_security_tools
 
-    from agent.settings import get_settings
     status = get_settings().integration_status()
 
     if status.get("docker"):
@@ -135,7 +135,7 @@ def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
         register_observability_tools(registry)
     if status.get("pihole") or status.get("unbound"):
         register_network_tools(registry)
-        
+
     register_security_tools(registry)
 
     if registry is default_registry:

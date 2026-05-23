@@ -16,9 +16,11 @@ from tools import observability_tool
 
 def _settings() -> AppSettings:
     return AppSettings(
-        tautulli_enabled=True, tautulli_base_url="http://tautulli.local",
+        tautulli_enabled=True,
+        tautulli_base_url="http://tautulli.local",
         tautulli_api_key=SecretStr("taut-key"),
-        overseerr_enabled=True, overseerr_base_url="http://overseerr.local",
+        overseerr_enabled=True,
+        overseerr_base_url="http://overseerr.local",
         overseerr_api_key=SecretStr("over-key"),
     )
 
@@ -41,9 +43,7 @@ def test_tautulli_uses_apikey_query_param(monkeypatch) -> None:
 
     def handler(request: httpx.Request) -> httpx.Response:
         captured["request"] = request
-        return httpx.Response(
-            200, json={"response": {"result": "success", "data": {"data": []}}}
-        )
+        return httpx.Response(200, json={"response": {"result": "success", "data": {"data": []}}})
 
     transport = httpx.MockTransport(handler)
     monkeypatch.setattr(observability_tool, "get_settings", _settings)
@@ -104,14 +104,10 @@ def test_overseerr_failed_requests_cross_checks_status(monkeypatch) -> None:
     monkeypatch.setattr(
         observability_tool,
         "_overseerr_client",
-        lambda integration: httpx.Client(
-            base_url=str(integration.base_url), transport=transport
-        ),
+        lambda integration: httpx.Client(base_url=str(integration.base_url), transport=transport),
     )
 
-    result = observability_tool.overseerr_failed_requests(
-        OverseerrFailedRequestsArgs(take=10)
-    )
+    result = observability_tool.overseerr_failed_requests(OverseerrFailedRequestsArgs(take=10))
 
     assert result.success is True
     assert isinstance(result.data, dict)

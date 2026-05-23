@@ -8,9 +8,12 @@ from agent.settings import AppSettings, get_settings
 
 def _settings() -> AppSettings:
     return AppSettings(
-        api_bearer_token=SecretStr("test-token"), docker_enabled=True, telegram_enabled=True,
+        api_bearer_token=SecretStr("test-token"),
+        docker_enabled=True,
+        telegram_enabled=True,
         redis_url="redis://:redis-secret@redis.local:6379/0",
-        sonarr_enabled=True, sonarr_base_url="http://sonarr.local:8989",
+        sonarr_enabled=True,
+        sonarr_base_url="http://sonarr.local:8989",
         sonarr_api_key=SecretStr("sonarr-secret"),
     )
 
@@ -68,19 +71,22 @@ def test_update_settings_persists_and_clears_cache(monkeypatch) -> None:
 
     # We mock update_env_file to avoid writing to actual .env
     calls = []
+
     def mock_update_env_file(updates, env_path=".env"):
         calls.append(updates)
-        
+
     monkeypatch.setattr("agent.settings.update_env_file", mock_update_env_file)
 
     payload = {
         "updates": {
             "plex_enabled": True,
             "plex_base_url": "http://new-plex.local",
-            "plex_token": None
+            "plex_token": None,
         }
     }
-    response = client.patch("/settings", json=payload, headers={"Authorization": "Bearer test-token"})
+    response = client.patch(
+        "/settings", json=payload, headers={"Authorization": "Bearer test-token"}
+    )
     assert response.status_code == 200
     assert len(calls) == 1
     assert calls[0]["FOXHOLE_PLEX_ENABLED"] == "true"

@@ -22,12 +22,12 @@ def register_tools(registry: ToolRegistry) -> None:
 def security_posture(arguments: BaseModel) -> ToolResult:
     SecurityPostureArgs.model_validate(arguments)
     findings: list[dict[str, str]] = []
-    
+
     settings = get_settings()
 
     _check_docker(settings, findings)
     _check_proxmox(settings, findings)
-        
+
     return ToolResult(success=True, data={"findings": findings})
 
 
@@ -39,39 +39,47 @@ def _check_docker(settings: Any, findings: list[dict[str, str]]) -> None:
             name = getattr(container, "name", "unknown")
             attrs = getattr(container, "attrs", {})
             host_config = attrs.get("HostConfig", {})
-            
+
             if host_config.get("Privileged"):
-                findings.append({
-                    "severity": "high",
-                    "type": "privileged_container",
-                    "evidence": f"Container '{name}' is running in privileged mode.",
-                    "remediation": "Remove --privileged and use specific capabilities instead."
-                })
-            
+                findings.append(
+                    {
+                        "severity": "high",
+                        "type": "privileged_container",
+                        "evidence": f"Container '{name}' is running in privileged mode.",
+                        "remediation": "Remove --privileged and use specific capabilities instead.",
+                    }
+                )
+
             if host_config.get("NetworkMode") == "host":
-                findings.append({
-                    "severity": "medium",
-                    "type": "host_networking",
-                    "evidence": f"Container '{name}' uses host networking.",
-                    "remediation": "Use bridge networks and publish only necessary ports."
-                })
-                
+                findings.append(
+                    {
+                        "severity": "medium",
+                        "type": "host_networking",
+                        "evidence": f"Container '{name}' uses host networking.",
+                        "remediation": "Use bridge networks and publish only necessary ports.",
+                    }
+                )
+
             policy = host_config.get("RestartPolicy", {}).get("Name")
             if not policy or policy == "no":
-                findings.append({
-                    "severity": "low",
-                    "type": "missing_restart_policy",
-                    "evidence": f"Container '{name}' has no restart policy.",
-                    "remediation": "Set restart policy to unless-stopped or always."
-                })
-                
+                findings.append(
+                    {
+                        "severity": "low",
+                        "type": "missing_restart_policy",
+                        "evidence": f"Container '{name}' has no restart policy.",
+                        "remediation": "Set restart policy to unless-stopped or always.",
+                    }
+                )
+
     except Exception as exc:
-        findings.append({
-            "severity": "warning",
-            "type": "docker_check_failed",
-            "evidence": f"Could not check Docker security: {exc}",
-            "remediation": "Ensure Docker socket proxy is reachable."
-        })
+        findings.append(
+            {
+                "severity": "warning",
+                "type": "docker_check_failed",
+                "evidence": f"Could not check Docker security: {exc}",
+                "remediation": "Ensure Docker socket proxy is reachable.",
+            }
+        )
 
 
 def _check_proxmox(settings: Any, findings: list[dict[str, str]]) -> None:
@@ -79,14 +87,15 @@ def _check_proxmox(settings: Any, findings: list[dict[str, str]]) -> None:
         return
     try:
         from tools.proxmox_tool import build_proxmox_client
+
         client = build_proxmox_client(settings)
         token_id = settings.proxmox_token_id.get_secret_value() if settings.proxmox_token_id else ""
         if not token_id:
             return
-            
+
         perms = client.access.permissions.get(userid=token_id)
         all_privs: set[str] = set()
-        
+
         # permissions can be a dict mapping path to privileges
         if isinstance(perms, dict):
             for _path, data in perms.items():
@@ -94,22 +103,26 @@ def _check_proxmox(settings: Any, findings: list[dict[str, str]]) -> None:
                     all_privs.update(data["privs"])
                 elif isinstance(data, list):
                     all_privs.update(data)
-                    
+
         dangerous = {"VM.Allocate", "Sys.Modify", "Datastore.Allocate", "User.Modify"}
         found_dangerous = dangerous.intersection(all_privs)
         if found_dangerous:
             dangerous_str = ", ".join(sorted(found_dangerous))
             evidence = f"Proxmox token has dangerous privileges: {dangerous_str}"
-            findings.append({
-                "severity": "high",
-                "type": "proxmox_privilege_drift",
-                "evidence": evidence,
-                "remediation": "Restrict token to audit-only roles."
-            })
+            findings.append(
+                {
+                    "severity": "high",
+                    "type": "proxmox_privilege_drift",
+                    "evidence": evidence,
+                    "remediation": "Restrict token to audit-only roles.",
+                }
+            )
     except Exception as exc:
-         findings.append({
-            "severity": "warning",
-            "type": "proxmox_check_failed",
-            "evidence": f"Could not check Proxmox security: {exc}",
-            "remediation": "Ensure Proxmox API token is valid."
-        })
+        findings.append(
+            {
+                "severity": "warning",
+                "type": "proxmox_check_failed",
+                "evidence": f"Could not check Proxmox security: {exc}",
+                "remediation": "Ensure Proxmox API token is valid.",
+            }
+        )

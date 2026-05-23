@@ -16,10 +16,10 @@ def test_security_checks_detects_privileged_container(monkeypatch: pytest.Monkey
             self.attrs = {
                 "HostConfig": {
                     "Privileged": privileged,
-                    "RestartPolicy": {"Name": "unless-stopped"}
+                    "RestartPolicy": {"Name": "unless-stopped"},
                 }
             }
-            
+
     class MockClient:
         class containers:
             @staticmethod
@@ -41,13 +41,13 @@ def test_security_checks_detects_privileged_container(monkeypatch: pytest.Monkey
         {"import_module": lambda name: MockDocker() if name == "docker" else None},
     )
     monkeypatch.setattr(security_tool, "importlib", mock_importlib)
-    
+
     result = security_tool.security_posture(SecurityPostureArgs())
-    
+
     assert result.success is True
     assert isinstance(result.data, dict)
     findings = result.data["findings"]
-    
+
     high_findings = [f for f in findings if f["severity"] == "high"]
     assert len(high_findings) == 1
     assert "risk-app" in high_findings[0]["evidence"]

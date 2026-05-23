@@ -9,7 +9,7 @@ class MockMode:
     without real homelab credentials.
     If FOXHOLE_MOCK_MODE=1, tools will return static data from tests/fixtures/mock-data.json.
     """
-    
+
     @staticmethod
     def is_enabled() -> bool:
         return os.environ.get("FOXHOLE_MOCK_MODE") == "1"
@@ -17,8 +17,7 @@ class MockMode:
     @staticmethod
     def get_mock_data(domain: str) -> dict[str, Any]:
         fixture_path = os.path.join(
-            os.path.dirname(__file__), 
-            "..", "tests", "fixtures", "mock-data.json"
+            os.path.dirname(__file__), "..", "tests", "fixtures", "mock-data.json"
         )
         try:
             with open(fixture_path) as f:

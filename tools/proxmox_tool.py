@@ -31,8 +31,7 @@ def register_tools(registry: ToolRegistry) -> None:
     registry.register(
         name="proxmox_storage_usage",
         description=(
-            "Read Proxmox storage usage including used percentage, used GB, total GB, "
-            "and type."
+            "Read Proxmox storage usage including used percentage, used GB, total GB, and type."
         ),
         args_model=ProxmoxStorageArgs,
     )(storage_usage)

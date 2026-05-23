@@ -8,11 +8,14 @@ from agent.alerts.telegram import (
 
 
 def test_escape_markdownv2() -> None:
-    assert escape_markdownv2("Hello_World*[]()") == r"Hello\_World\*\*\[\]\(\)" or \
-           escape_markdownv2("Hello_World*[]()") == r"Hello\_World\*\+\[\]\(\)" or \
-           escape_markdownv2("Hello_World*[]()") == r"Hello\_World\*\[\]\(\)"
+    assert (
+        escape_markdownv2("Hello_World*[]()") == r"Hello\_World\*\*\[\]\(\)"
+        or escape_markdownv2("Hello_World*[]()") == r"Hello\_World\*\+\[\]\(\)"
+        or escape_markdownv2("Hello_World*[]()") == r"Hello\_World\*\[\]\(\)"
+    )
     assert escape_markdownv2("No special chars") == "No special chars"
     assert escape_markdownv2("") == ""
+
 
 def test_chunk_message() -> None:
     text = "A" * 5000
@@ -26,6 +29,7 @@ def test_chunk_message() -> None:
     assert len(chunks) == 3
     assert "Line1" in chunks[0]
     assert "Line2" in chunks[2]
+
 
 def test_render_container_crash() -> None:
     res = render_container_crash("my_container", 137)

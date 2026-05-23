@@ -97,9 +97,7 @@ def transcode_status(arguments: BaseModel) -> ToolResult:
         data={
             "session_count": len(sessions),
             "direct_play_count": sum(1 for s in sessions if s.decision.lower() == "directplay"),
-            "direct_stream_count": sum(
-                1 for s in sessions if s.decision.lower() == "directstream"
-            ),
+            "direct_stream_count": sum(1 for s in sessions if s.decision.lower() == "directstream"),
             "transcode_count": len(transcoded),
             "hardware_transcode_count": len(hardware),
             "software_transcode_count": len(software),
@@ -114,9 +112,7 @@ def analyze_logs(arguments: BaseModel) -> ToolResult:
     try:
         text = _read_tail(args.log_path, args.max_bytes)
     except FileNotFoundError:
-        return ToolResult(
-            success=False, error=f"Plex log path is not available: {args.log_path}"
-        )
+        return ToolResult(success=False, error=f"Plex log path is not available: {args.log_path}")
     except OSError as exc:
         return ToolResult(success=False, error=f"Could not read Plex log: {exc}")
 
@@ -140,9 +136,7 @@ def buffering_diagnosis(arguments: BaseModel) -> ToolResult:
     sessions_result = active_sessions(PlexSessionsArgs())
     if not sessions_result.success or not isinstance(sessions_result.data, dict):
         return sessions_result
-    sessions = [
-        PlexSession.model_validate(row) for row in sessions_result.data.get("sessions", [])
-    ]
+    sessions = [PlexSession.model_validate(row) for row in sessions_result.data.get("sessions", [])]
     software_transcodes = [
         s for s in sessions if s.decision.lower() == "transcode" and not s.transcode_hardware
     ]
@@ -151,15 +145,11 @@ def buffering_diagnosis(arguments: BaseModel) -> ToolResult:
     ]
     risk_factors: list[str] = []
     if software_transcodes:
-        risk_factors.append(
-            f"{len(software_transcodes)} session(s) using software transcoding"
-        )
+        risk_factors.append(f"{len(software_transcodes)} session(s) using software transcoding")
     if len(sessions) >= 4:
         risk_factors.append(f"{len(sessions)} concurrent sessions")
     if high_bandwidth:
-        risk_factors.append(
-            f"{len(high_bandwidth)} session(s) above 20 Mbps stream bandwidth"
-        )
+        risk_factors.append(f"{len(high_bandwidth)} session(s) above 20 Mbps stream bandwidth")
     risk = "high" if len(risk_factors) >= 2 else "elevated" if risk_factors else "low"
     return ToolResult(
         success=True,
@@ -277,9 +267,7 @@ def _session_from_video(video: ET.Element) -> PlexSession:
 
 
 def _hardware_transcode_observed(sessions: list[PlexSession]) -> bool:
-    return any(
-        s.transcode_hardware for s in sessions if s.decision.lower() == "transcode"
-    )
+    return any(s.transcode_hardware for s in sessions if s.decision.lower() == "transcode")
 
 
 def _read_tail(path: str, max_bytes: int) -> str:

@@ -35,4 +35,3 @@ def test_protected_route_rejects_invalid_bearer_token() -> None:
     app.dependency_overrides.clear()
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid bearer token."
-

@@ -1,2 +1,1 @@
 """Foxhole background worker package."""
-

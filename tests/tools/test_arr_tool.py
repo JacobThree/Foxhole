@@ -18,9 +18,11 @@ from tools import arr_tool
 
 def _settings() -> AppSettings:
     return AppSettings(
-        sonarr_enabled=True, sonarr_base_url="http://sonarr.local",
+        sonarr_enabled=True,
+        sonarr_base_url="http://sonarr.local",
         sonarr_api_key=SecretStr("sonarr-key"),
-        radarr_enabled=True, radarr_base_url="http://radarr.local",
+        radarr_enabled=True,
+        radarr_base_url="http://radarr.local",
         radarr_api_key=SecretStr("radarr-key"),
     )
 
@@ -34,6 +36,7 @@ def _patch(monkeypatch, handler) -> dict[str, Any]:
 
     transport = httpx.MockTransport(wrapped)
     monkeypatch.setattr(arr_tool, "get_settings", _settings)
+
     def make_client(integration):
         api_key = integration.api_key.get_secret_value() if integration.api_key else ""
         return httpx.Client(
