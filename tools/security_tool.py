@@ -5,6 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from agent.mock_mode import MockMode
 from agent.settings import get_settings
 from agent.tools.base import ToolResult
 from agent.tools.registry import ToolRegistry
@@ -20,7 +21,10 @@ def register_tools(registry: ToolRegistry) -> None:
 
 
 def security_posture(arguments: BaseModel) -> ToolResult:
-    SecurityPostureArgs.model_validate(arguments)
+    args = SecurityPostureArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("security_posture", args)
+    if mock_result is not None:
+        return mock_result
     findings: list[dict[str, str]] = []
 
     settings = get_settings()

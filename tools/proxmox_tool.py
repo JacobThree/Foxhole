@@ -5,6 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from agent.mock_mode import MockMode
 from agent.settings import AppSettings, get_settings
 from agent.tools.base import ToolResult, ToolSafety
 from agent.tools.registry import ToolRegistry
@@ -50,6 +51,9 @@ def register_tools(registry: ToolRegistry) -> None:
 
 def node_status(arguments: BaseModel) -> ToolResult:
     args = ProxmoxNodeStatusArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("proxmox_node_status", args)
+    if mock_result is not None:
+        return mock_result
     try:
         client = _proxmox_client()
         nodes = _selected_nodes(client, args.node)
@@ -63,6 +67,9 @@ def node_status(arguments: BaseModel) -> ToolResult:
 
 def inventory(arguments: BaseModel) -> ToolResult:
     args = ProxmoxInventoryArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("proxmox_inventory", args)
+    if mock_result is not None:
+        return mock_result
     try:
         client = _proxmox_client()
         nodes = _selected_nodes(client, args.node)
@@ -79,6 +86,9 @@ def inventory(arguments: BaseModel) -> ToolResult:
 
 def storage_usage(arguments: BaseModel) -> ToolResult:
     args = ProxmoxStorageArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("proxmox_storage_usage", args)
+    if mock_result is not None:
+        return mock_result
     try:
         client = _proxmox_client()
         rows: list[dict[str, Any]] = []
@@ -93,7 +103,10 @@ def storage_usage(arguments: BaseModel) -> ToolResult:
 
 
 def backup_jobs(arguments: BaseModel) -> ToolResult:
-    ProxmoxBackupJobsArgs.model_validate(arguments)
+    args = ProxmoxBackupJobsArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("proxmox_backup_jobs", args)
+    if mock_result is not None:
+        return mock_result
     try:
         jobs = _proxmox_client().cluster.backup.get()
         return ToolResult(success=True, data=[_backup_job_row(job) for job in jobs])
@@ -103,6 +116,9 @@ def backup_jobs(arguments: BaseModel) -> ToolResult:
 
 def migrate_lxc(arguments: BaseModel) -> ToolResult:
     args = ProxmoxMigrateLxcArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("proxmox_migrate_lxc", args)
+    if mock_result is not None:
+        return mock_result
     try:
         task_id = (
             _proxmox_client()

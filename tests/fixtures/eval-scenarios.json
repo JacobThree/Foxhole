@@ -1,0 +1,267 @@
+[
+  {
+    "name": "docker_restart_loop",
+    "check": "container_health",
+    "fixture": {
+      "tools": {
+        "docker_list_containers": [
+          {
+            "id": "abc123def456",
+            "name": "plex-media-server",
+            "image": "plexinc/pms-docker",
+            "image_tags": ["plexinc/pms-docker:latest"],
+            "status": "restarting",
+            "health": "unhealthy",
+            "labels": {},
+            "ports": [],
+            "restart_count": 9
+          }
+        ],
+        "docker_detect_restart_loops": {
+          "min_restarts": 3,
+          "restart_loop_candidates": [
+            {
+              "id": "abc123def456",
+              "name": "plex-media-server",
+              "image": "plexinc/pms-docker",
+              "image_tags": ["plexinc/pms-docker:latest"],
+              "status": "restarting",
+              "health": "unhealthy",
+              "labels": {},
+              "ports": [],
+              "restart_count": 9
+            }
+          ]
+        },
+        "security_posture": {
+          "findings": []
+        }
+      }
+    },
+    "expected_findings": [
+      "Unhealthy Docker container",
+      "Docker container is not stable",
+      "Docker restart loop candidate"
+    ],
+    "expected_evidence_sources": ["docker_list_containers"]
+  },
+  {
+    "name": "plex_db_locked",
+    "check": "plex_db_health",
+    "fixture": {
+      "plex": {
+        "log_path": "/mock/plex/Plex Media Server.log"
+      },
+      "tools": {
+        "plex_buffering_diagnosis": {
+          "risk": "high",
+          "risk_factors": [
+            "2 session(s) using software transcoding",
+            "4 concurrent sessions"
+          ],
+          "session_count": 4,
+          "software_transcode_count": 2
+        },
+        "plex_analyze_logs": {
+          "log_path": "/mock/plex/Plex Media Server.log",
+          "bytes_read": 4096,
+          "finding_counts": {
+            "sqlite_busy": 2,
+            "database_locked": 1
+          },
+          "findings": [
+            {
+              "category": "sqlite_busy",
+              "severity": "warning",
+              "line": "SQLite3: database is locked"
+            },
+            {
+              "category": "database_locked",
+              "severity": "critical",
+              "line": "Database lock held for 45 seconds"
+            }
+          ]
+        }
+      }
+    },
+    "expected_findings": [
+      "Plex buffering risk",
+      "Sqlite Busy",
+      "Database Locked"
+    ],
+    "expected_evidence_sources": ["plex_buffering_diagnosis", "plex_analyze_logs"]
+  },
+  {
+    "name": "sonarr_import_stuck",
+    "check": "arr_imports",
+    "fixture": {
+      "tools": {
+        "arr_queue": {
+          "sonarr": {
+            "records": [
+              {
+                "id": 7,
+                "title": "Example Show S01E01",
+                "status": "warning",
+                "added": "2020-01-01T00:00:00+00:00",
+                "outputPath": "/downloads/complete/example-show",
+                "statusMessages": [
+                  {
+                    "messages": ["No files found are eligible for import"]
+                  }
+                ]
+              }
+            ]
+          },
+          "radarr": {
+            "records": []
+          }
+        },
+        "arr_health": {
+          "sonarr": [
+            {
+              "type": "warning",
+              "source": "DownloadClientCheck",
+              "message": "qBittorrent is unavailable"
+            }
+          ],
+          "radarr": []
+        },
+        "arr_root_folders": {
+          "sonarr": [
+            {
+              "id": 1,
+              "path": "/tv"
+            }
+          ],
+          "radarr": [
+            {
+              "id": 1,
+              "path": "/movies"
+            }
+          ]
+        }
+      }
+    },
+    "expected_findings": [
+      "Sonarr queue warning",
+      "Sonarr stale import queue item",
+      "Sonarr health warning",
+      "Sonarr root-folder mismatch"
+    ],
+    "expected_evidence_sources": ["arr_imports"]
+  },
+  {
+    "name": "stale_proxmox_backup",
+    "check": "storage_thresholds",
+    "fixture": {
+      "tools": {
+        "proxmox_storage_usage": [
+          {
+            "node": "pve-01",
+            "storage": "backup-nas",
+            "type": "pbs",
+            "content": "backup",
+            "enabled": true,
+            "used_percent": 91.5,
+            "used_gb": 3660.0,
+            "total_gb": 4000.0
+          }
+        ],
+        "proxmox_backup_jobs": [
+          {
+            "id": "backup-all",
+            "enabled": true,
+            "schedule": "02:00",
+            "storage": "backup-nas",
+            "last_run_endtime": 0,
+            "last_run_state": "ok",
+            "vmids": "112,120,130"
+          }
+        ]
+      }
+    },
+    "expected_findings": [
+      "Storage Threshold",
+      "Backup Job Stale"
+    ],
+    "expected_evidence_sources": ["backup_storage_health"]
+  },
+  {
+    "name": "pihole_dns_failure",
+    "check": "rogue_macs",
+    "fixture": {
+      "network": {
+        "allowed_subnets": ["192.168.1.0/24"]
+      },
+      "tools": {
+        "network_unknown_devices": {
+          "subnet": "192.168.1.0/24",
+          "known_count": 1,
+          "unknown_count": 0,
+          "unknown_devices": []
+        },
+        "pihole_summary": {
+          "dns_queries_today": 100,
+          "ads_blocked_today": 0,
+          "ads_percentage_today": 0.0,
+          "domains_being_blocked": 0
+        },
+        "unbound_stats": {
+          "total.num.queries": 100,
+          "total.num.cachehits": 40,
+          "total.requestlist.avg": 0.1,
+          "time.up": 600
+        }
+      }
+    },
+    "expected_findings": ["Pi-hole blocklist appears empty"],
+    "expected_evidence_sources": [
+      "network_unknown_devices",
+      "pihole_summary",
+      "unbound_stats"
+    ]
+  },
+  {
+    "name": "rogue_lan_device",
+    "check": "rogue_macs",
+    "fixture": {
+      "network": {
+        "allowed_subnets": ["192.168.1.0/24"]
+      },
+      "tools": {
+        "network_unknown_devices": {
+          "subnet": "192.168.1.0/24",
+          "known_count": 1,
+          "unknown_count": 1,
+          "unknown_devices": [
+            {
+              "ip": "192.168.1.50",
+              "hostname": "unknown-iot",
+              "mac": "11:22:33:44:55:66",
+              "vendor": "Unknown"
+            }
+          ]
+        },
+        "pihole_summary": {
+          "dns_queries_today": 1000,
+          "ads_blocked_today": 250,
+          "ads_percentage_today": 25.0,
+          "domains_being_blocked": 100000
+        },
+        "unbound_stats": {
+          "total.num.queries": 1000,
+          "total.num.cachehits": 700,
+          "total.requestlist.avg": 0.1,
+          "time.up": 86400
+        }
+      }
+    },
+    "expected_findings": ["Unknown MAC detected"],
+    "expected_evidence_sources": [
+      "network_unknown_devices",
+      "pihole_summary",
+      "unbound_stats"
+    ]
+  }
+]

@@ -9,6 +9,7 @@ from typing import Any
 
 from agent.db.repositories import prune_durable_history
 from agent.events import store_check_result
+from agent.mock_mode import MockMode
 from agent.settings import AppSettings, get_settings
 from schemas.python.arr import ArrHealthArgs, ArrImportDiagnosisArgs, ArrQueueArgs, ArrService
 from schemas.python.backups import BackupStorageHealthArgs
@@ -97,7 +98,7 @@ def _run_check(
 
 
 def _check_container_health(settings: AppSettings) -> ScheduledCheckResult:
-    if not settings.docker.configured:
+    if not settings.docker.configured and not settings.mock_mode:
         return _skipped(
             "container_health",
             "docker",
@@ -229,7 +230,7 @@ def _check_container_health(settings: AppSettings) -> ScheduledCheckResult:
 
 
 def _check_storage_thresholds(settings: AppSettings) -> ScheduledCheckResult:
-    if not settings.proxmox.configured:
+    if not settings.proxmox.configured and not settings.mock_mode:
         return _skipped(
             "storage_thresholds",
             "storage",
@@ -357,7 +358,7 @@ def _check_arr_imports(settings: AppSettings) -> ScheduledCheckResult:
 
 
 def _check_plex_db_health(settings: AppSettings) -> ScheduledCheckResult:
-    if not settings.plex.configured:
+    if not settings.plex.configured and not settings.mock_mode:
         return _skipped(
             "plex_db_health",
             "plex",
@@ -406,8 +407,11 @@ def _check_plex_db_health(settings: AppSettings) -> ScheduledCheckResult:
             )
         )
 
-    if settings.plex_log_path:
-        log_result = plex_tool.analyze_logs(PlexLogAnalysisArgs(log_path=settings.plex_log_path))
+    plex_log_path = settings.plex_log_path
+    if not plex_log_path and settings.mock_mode:
+        plex_log_path = MockMode.default_plex_log_path()
+    if plex_log_path:
+        log_result = plex_tool.analyze_logs(PlexLogAnalysisArgs(log_path=plex_log_path))
         if log_result.success:
             data = _dict(log_result.data)
             evidence.append(
@@ -454,7 +458,10 @@ def _check_plex_db_health(settings: AppSettings) -> ScheduledCheckResult:
 
 
 def _scan_rogue_macs(settings: AppSettings) -> ScheduledCheckResult:
-    if not settings.network_allowed_subnets:
+    subnets = settings.network_allowed_subnets or (
+        MockMode.default_subnets() if settings.mock_mode else []
+    )
+    if not subnets:
         return _skipped(
             "rogue_macs",
             "network",
@@ -463,7 +470,7 @@ def _scan_rogue_macs(settings: AppSettings) -> ScheduledCheckResult:
 
     findings: list[DiagnosticFinding] = []
     scanned_subnets: list[str] = []
-    for subnet in settings.network_allowed_subnets:
+    for subnet in subnets:
         result = network_tool.network_unknown_devices(UnknownDeviceArgs(subnet=subnet))
         if result.success:
             data = _dict(result.data)
@@ -507,6 +514,7 @@ def _scan_rogue_macs(settings: AppSettings) -> ScheduledCheckResult:
             summary=f"Checked {len(scanned_subnets)} configured subnet(s).",
             data={
                 "configured_subnets": settings.network_allowed_subnets,
+                "mock_subnets": subnets if settings.mock_mode else [],
                 "scanned_subnets": scanned_subnets,
                 "known_mac_count": len(settings.network_known_macs),
             },
@@ -528,7 +536,7 @@ def _dns_diagnostics(
 ) -> tuple[list[EvidenceItem], list[DiagnosticFinding]]:
     evidence: list[EvidenceItem] = []
     findings: list[DiagnosticFinding] = []
-    if settings.pihole.configured:
+    if settings.pihole.configured or settings.mock_mode:
         result = network_tool.pihole_summary(PiholeSummaryArgs())
         if result.success:
             data = _dict(result.data)
@@ -566,7 +574,7 @@ def _dns_diagnostics(
                     "Verify Pi-hole API connectivity.",
                 )
             )
-    if settings.unbound.configured:
+    if settings.unbound.configured or settings.mock_mode:
         result = network_tool.unbound_stats(UnboundStatsArgs())
         if result.success:
             data = _dict(result.data)
@@ -700,6 +708,8 @@ def _risk_from_tool_severity(value: Any) -> RiskLevel:
 
 
 def _configured_arr_services(settings: AppSettings) -> list[ArrService]:
+    if settings.mock_mode:
+        return [ArrService.SONARR, ArrService.RADARR]
     services: list[ArrService] = []
     if settings.sonarr.configured:
         services.append(ArrService.SONARR)

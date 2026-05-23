@@ -4,8 +4,12 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def set_mock_mode_for_tests():
-    """Ensure mock mode is enabled during all tests."""
-    os.environ["FOXHOLE_MOCK_MODE"] = "1"
+def clear_mock_mode_for_tests():
+    """Tests opt into runtime mock mode explicitly."""
+    original = os.environ.pop("FOXHOLE_MOCK_MODE", None)
+    original_fixture = os.environ.pop("FOXHOLE_MOCK_FIXTURE_PATH", None)
     yield
-    # Note: If tests need real credentials, they should explicitly unset this.
+    if original is not None:
+        os.environ["FOXHOLE_MOCK_MODE"] = original
+    if original_fixture is not None:
+        os.environ["FOXHOLE_MOCK_FIXTURE_PATH"] = original_fixture

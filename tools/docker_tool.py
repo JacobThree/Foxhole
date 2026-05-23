@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from agent.mock_mode import MockMode
 from agent.settings import get_settings
 from agent.tools.base import ToolResult, ToolSafety
 from agent.tools.registry import ToolRegistry
@@ -54,6 +55,9 @@ def register_tools(registry: ToolRegistry) -> None:
 
 def list_containers(arguments: BaseModel) -> ToolResult:
     args = DockerListContainersArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("docker_list_containers", args)
+    if mock_result is not None:
+        return mock_result
     try:
         client = _docker_client()
         containers = client.containers.list(all=args.all)
@@ -68,6 +72,9 @@ def list_containers(arguments: BaseModel) -> ToolResult:
 
 def inspect_container(arguments: BaseModel) -> ToolResult:
     args = DockerInspectContainerArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("docker_inspect_container", args)
+    if mock_result is not None:
+        return mock_result
     try:
         container = _docker_client().containers.get(args.container)
         return ToolResult(success=True, data=_container_summary(container).model_dump(mode="json"))
@@ -77,6 +84,9 @@ def inspect_container(arguments: BaseModel) -> ToolResult:
 
 def read_logs(arguments: BaseModel) -> ToolResult:
     args = DockerReadLogsArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("docker_read_logs", args)
+    if mock_result is not None:
+        return mock_result
     try:
         container = _docker_client().containers.get(args.container)
         raw = container.logs(tail=args.lines, stdout=True, stderr=True)
@@ -101,6 +111,9 @@ def read_logs(arguments: BaseModel) -> ToolResult:
 
 def detect_restart_loops(arguments: BaseModel) -> ToolResult:
     args = DockerRestartLoopArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("docker_detect_restart_loops", args)
+    if mock_result is not None:
+        return mock_result
     try:
         containers = _docker_client().containers.list(all=args.all)
         summaries = [_container_summary(container) for container in containers]
@@ -120,6 +133,9 @@ def detect_restart_loops(arguments: BaseModel) -> ToolResult:
 
 def container_action(arguments: BaseModel) -> ToolResult:
     args = DockerContainerActionArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("docker_container_action", args)
+    if mock_result is not None:
+        return mock_result
     try:
         container = _docker_client().containers.get(args.container)
         old_status = _container_summary(container).model_dump(mode="json")

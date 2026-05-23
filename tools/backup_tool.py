@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from agent.mock_mode import MockMode
 from agent.tools.base import ToolResult
 from agent.tools.registry import ToolRegistry
 from schemas.python.backups import BackupStorageHealthArgs
@@ -26,6 +27,9 @@ def register_tools(registry: ToolRegistry) -> None:
 
 def backup_storage_health(arguments: BaseModel) -> ToolResult:
     args = BackupStorageHealthArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("backup_storage_health", args, required=False)
+    if mock_result is not None:
+        return mock_result
     storage_result = storage_usage(ProxmoxStorageArgs())
     jobs_result = backup_jobs(ProxmoxBackupJobsArgs())
     if not storage_result.success:

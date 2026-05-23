@@ -7,6 +7,7 @@ from typing import Any
 from redis.asyncio import Redis
 
 from agent.db.repositories import EventRepository
+from agent.mock_mode import MockMode
 from agent.settings import get_settings
 from schemas.python.events import CheckSummary, Event, ScheduledCheckResult
 
@@ -74,6 +75,10 @@ async def store_check_result(result: ScheduledCheckResult) -> Event:
 
 
 async def get_recent_events(limit: int = 50) -> list[Event]:
+    if MockMode.is_enabled():
+        mock_events = MockMode.events(limit)
+        if mock_events:
+            return mock_events
     durable_events = EventRepository().recent_events(limit=limit)
     try:
         redis = await get_redis()

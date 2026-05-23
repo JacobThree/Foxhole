@@ -8,6 +8,7 @@ from xml.etree import ElementTree as ET
 import httpx
 from pydantic import BaseModel
 
+from agent.mock_mode import MockMode
 from agent.settings import AppSettings, get_settings
 from agent.tools.base import ToolResult
 from agent.tools.registry import ToolRegistry
@@ -62,7 +63,10 @@ def register_tools(registry: ToolRegistry) -> None:
 
 
 def active_sessions(arguments: BaseModel) -> ToolResult:
-    PlexSessionsArgs.model_validate(arguments)
+    args = PlexSessionsArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("plex_active_sessions", args)
+    if mock_result is not None:
+        return mock_result
     settings = get_settings()
     if not settings.plex.configured:
         return ToolResult(success=False, error="Plex integration is not configured.")
@@ -83,7 +87,10 @@ def active_sessions(arguments: BaseModel) -> ToolResult:
 
 
 def transcode_status(arguments: BaseModel) -> ToolResult:
-    PlexTranscodeStatusArgs.model_validate(arguments)
+    args = PlexTranscodeStatusArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("plex_transcode_status", args, required=False)
+    if mock_result is not None:
+        return mock_result
     result = active_sessions(PlexSessionsArgs())
     if not result.success or not isinstance(result.data, dict):
         return result
@@ -109,6 +116,9 @@ def transcode_status(arguments: BaseModel) -> ToolResult:
 
 def analyze_logs(arguments: BaseModel) -> ToolResult:
     args = PlexLogAnalysisArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("plex_analyze_logs", args)
+    if mock_result is not None:
+        return mock_result
     try:
         text = _read_tail(args.log_path, args.max_bytes)
     except FileNotFoundError:
@@ -132,7 +142,10 @@ def analyze_logs(arguments: BaseModel) -> ToolResult:
 
 
 def buffering_diagnosis(arguments: BaseModel) -> ToolResult:
-    PlexBufferingDiagnosisArgs.model_validate(arguments)
+    args = PlexBufferingDiagnosisArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("plex_buffering_diagnosis", args, required=False)
+    if mock_result is not None:
+        return mock_result
     sessions_result = active_sessions(PlexSessionsArgs())
     if not sessions_result.success or not isinstance(sessions_result.data, dict):
         return sessions_result
@@ -170,6 +183,9 @@ def buffering_diagnosis(arguments: BaseModel) -> ToolResult:
 
 def debug_guidance(arguments: BaseModel) -> ToolResult:
     args = PlexDebugGuidanceArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("plex_debug_guidance", args, required=False)
+    if mock_result is not None:
+        return mock_result
     inspectable = False
     debug_observed: bool | None = None
     log_status = "not_provided"

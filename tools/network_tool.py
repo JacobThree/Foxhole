@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 from pydantic import BaseModel
 
+from agent.mock_mode import MockMode
 from agent.settings import AppSettings, get_settings
 from agent.tools.base import ToolResult
 from agent.tools.registry import ToolRegistry
@@ -67,22 +68,34 @@ def register_tools(registry: ToolRegistry) -> None:
 
 
 def pihole_summary(arguments: BaseModel) -> ToolResult:
-    PiholeSummaryArgs.model_validate(arguments)
+    args = PiholeSummaryArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("pihole_summary", args)
+    if mock_result is not None:
+        return mock_result
     return _pihole_get({"summary": ""})
 
 
 def pihole_recent_blocked(arguments: BaseModel) -> ToolResult:
-    PiholeRecentBlockedArgs.model_validate(arguments)
+    args = PiholeRecentBlockedArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("pihole_recent_blocked", args)
+    if mock_result is not None:
+        return mock_result
     return _pihole_get({"recentBlocked": ""}, expect_json=False)
 
 
 def pihole_recent_queries(arguments: BaseModel) -> ToolResult:
     args = PiholeQueriesArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("pihole_recent_queries", args)
+    if mock_result is not None:
+        return mock_result
     return _pihole_get({"getAllQueries": args.limit})
 
 
 def unbound_stats(arguments: BaseModel) -> ToolResult:
-    UnboundStatsArgs.model_validate(arguments)
+    args = UnboundStatsArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("unbound_stats", args)
+    if mock_result is not None:
+        return mock_result
     settings = get_settings()
     try:
         output = run_unbound_control(settings)
@@ -98,6 +111,9 @@ def unbound_stats(arguments: BaseModel) -> ToolResult:
 
 def network_scan(arguments: BaseModel) -> ToolResult:
     args = NetworkScanArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("network_scan", args)
+    if mock_result is not None:
+        return mock_result
     settings = get_settings()
     refusal = _refuse_unsafe_subnet(args.subnet, settings)
     if refusal is not None:
@@ -119,6 +135,9 @@ def network_scan(arguments: BaseModel) -> ToolResult:
 
 def network_unknown_devices(arguments: BaseModel) -> ToolResult:
     args = UnknownDeviceArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("network_unknown_devices", args, required=False)
+    if mock_result is not None:
+        return mock_result
     settings = get_settings()
     refusal = _refuse_unsafe_subnet(args.subnet, settings)
     if refusal is not None:

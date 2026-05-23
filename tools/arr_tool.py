@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 from pydantic import BaseModel
 
+from agent.mock_mode import MockMode
 from agent.settings import AppSettings, IntegrationSettings, get_settings
 from agent.tools.base import ToolResult, ToolSafety
 from agent.tools.registry import ToolRegistry
@@ -59,6 +60,9 @@ def register_tools(registry: ToolRegistry) -> None:
 
 def queue(arguments: BaseModel) -> ToolResult:
     args = ArrQueueArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("arr_queue", args)
+    if mock_result is not None:
+        return mock_result
     return _request_json(
         args.service,
         "GET",
@@ -69,26 +73,41 @@ def queue(arguments: BaseModel) -> ToolResult:
 
 def health(arguments: BaseModel) -> ToolResult:
     args = ArrHealthArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("arr_health", args)
+    if mock_result is not None:
+        return mock_result
     return _request_json(args.service, "GET", "/api/v3/health")
 
 
 def root_folders(arguments: BaseModel) -> ToolResult:
     args = ArrRootFoldersArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("arr_root_folders", args)
+    if mock_result is not None:
+        return mock_result
     return _request_json(args.service, "GET", "/api/v3/rootfolder")
 
 
 def download_clients(arguments: BaseModel) -> ToolResult:
     args = ArrDownloadClientsArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("arr_download_clients", args)
+    if mock_result is not None:
+        return mock_result
     return _request_json(args.service, "GET", "/api/v3/downloadclient")
 
 
 def quality_profiles(arguments: BaseModel) -> ToolResult:
     args = ArrQualityProfilesArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("arr_quality_profiles", args)
+    if mock_result is not None:
+        return mock_result
     return _request_json(args.service, "GET", "/api/v3/qualityprofile")
 
 
 def import_diagnosis(arguments: BaseModel) -> ToolResult:
     args = ArrImportDiagnosisArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("arr_import_diagnosis", args, required=False)
+    if mock_result is not None:
+        return mock_result
     queue_result = queue(ArrQueueArgs(service=args.service, page_size=args.page_size))
     if not queue_result.success:
         return queue_result
@@ -128,6 +147,9 @@ def import_diagnosis(arguments: BaseModel) -> ToolResult:
 
 def update_quality_profile(arguments: BaseModel) -> ToolResult:
     args = ArrQualityProfileUpdateArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("arr_update_quality_profile", args)
+    if mock_result is not None:
+        return mock_result
     current = _request_json(args.service, "GET", f"/api/v3/qualityprofile/{args.profile_id}")
     if not current.success or not isinstance(current.data, dict):
         return current
@@ -154,6 +176,9 @@ def update_quality_profile(arguments: BaseModel) -> ToolResult:
 
 def queue_item_action(arguments: BaseModel) -> ToolResult:
     args = ArrQueueItemActionArgs.model_validate(arguments)
+    mock_result = MockMode.tool_result("arr_queue_item_action", args)
+    if mock_result is not None:
+        return mock_result
     return _request_json(
         args.service,
         "DELETE",

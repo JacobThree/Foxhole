@@ -563,13 +563,13 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Mock mode can simulate Docker, Proxmox, Plex, *Arr, Pi-hole, and event data.
-- [ ] Runtime tools use mock data only when explicitly enabled.
-- [ ] Tests prove mock mode avoids external network/service calls.
+- [x] Mock mode can simulate Docker, Proxmox, Plex, *Arr, Pi-hole, and event data.
+- [x] Runtime tools use mock data only when explicitly enabled.
+- [x] Tests prove mock mode avoids external network/service calls.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools tests/agent/test_settings.py`
+- [x] Tests pass: `pytest tests/tools tests/agent/test_settings.py`
 - [ ] Manual check: backend can run with mock mode and no real integrations.
 
 **Dependencies:** Task 8
@@ -592,13 +592,13 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] At least five scenarios exist with input fixture data and expected diagnosis.
-- [ ] A test helper can run a scenario through diagnostic bundles without an LLM.
-- [ ] Failures show which expected finding/evidence was missing.
+- [x] At least five scenarios exist with input fixture data and expected diagnosis.
+- [x] A test helper can run a scenario through diagnostic bundles without an LLM.
+- [x] Failures show which expected finding/evidence was missing.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/evals tests/workers/test_tasks.py`
+- [x] Tests pass: `pytest tests/evals tests/workers/test_tasks.py`
 - [ ] Manual check: one scenario can drive the UI in mock mode.
 
 **Dependencies:** Task 15
@@ -616,8 +616,8 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 ### Checkpoint: Demo and Regression Mode
 
-- [ ] A new contributor can run Foxhole without a homelab and see realistic issues.
-- [ ] Diagnostic quality can regress in tests before users notice it.
+- [x] A new contributor can run Foxhole without a homelab and see realistic issues.
+- [x] Diagnostic quality can regress in tests before users notice it.
 
 ---
 

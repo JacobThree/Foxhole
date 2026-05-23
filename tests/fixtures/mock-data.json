@@ -2,16 +2,18 @@
   "docker": {
     "containers": [
       {
-        "id": "1",
-        "name": "foxhole-api",
-        "status": "healthy",
-        "detail": "Uptime: 2 days"
+        "id": "abc123def456",
+        "name": "plex-media-server",
+        "status": "restarting",
+        "health": "unhealthy",
+        "restart_count": 8
       },
       {
-        "id": "2",
-        "name": "plex-media-server",
-        "status": "warning",
-        "detail": "High CPU usage"
+        "id": "def456abc123",
+        "name": "sonarr",
+        "status": "running",
+        "health": "healthy",
+        "restart_count": 0
       }
     ]
   },
@@ -20,19 +22,437 @@
       {
         "id": "1",
         "name": "pve-01",
-        "status": "healthy",
-        "detail": "Storage: 60% used"
+        "status": "warning",
+        "detail": "backup-nas is 91.5% full"
       }
     ]
   },
+  "plex": {
+    "log_path": "/mock/plex/Plex Media Server.log"
+  },
   "network": {
+    "allowed_subnets": ["192.168.1.0/24"],
     "status": [
       {
         "id": "1",
         "name": "Pi-hole DNS",
-        "status": "healthy",
-        "detail": "21,000 domains blocked"
+        "status": "warning",
+        "detail": "Blocklist is empty"
       }
     ]
+  },
+  "events": [
+    {
+      "type": "scheduled_check",
+      "severity": "critical",
+      "source": "docker",
+      "payload_summary": "1 Docker container issue(s) found.",
+      "correlation_id": "mock-docker-restart-loop",
+      "data": {
+        "check": "container_health",
+        "status": "critical",
+        "duration_ms": 12.5
+      }
+    },
+    {
+      "type": "scheduled_check",
+      "severity": "warning",
+      "source": "network",
+      "payload_summary": "Pi-hole reports no domains being blocked.",
+      "correlation_id": "mock-pihole-empty-blocklist",
+      "data": {
+        "check": "rogue_macs",
+        "status": "warning",
+        "duration_ms": 9.1
+      }
+    }
+  ],
+  "tools": {
+    "docker_list_containers": [
+      {
+        "id": "abc123def456",
+        "name": "plex-media-server",
+        "image": "plexinc/pms-docker",
+        "image_tags": ["plexinc/pms-docker:latest"],
+        "status": "restarting",
+        "health": "unhealthy",
+        "labels": {
+          "com.docker.compose.service": "plex"
+        },
+        "ports": [
+          {
+            "private_port": 32400,
+            "public_port": 32400,
+            "protocol": "tcp",
+            "ip": "0.0.0.0"
+          }
+        ],
+        "restart_count": 8
+      },
+      {
+        "id": "def456abc123",
+        "name": "sonarr",
+        "image": "lscr.io/linuxserver/sonarr",
+        "image_tags": ["lscr.io/linuxserver/sonarr:latest"],
+        "status": "running",
+        "health": "healthy",
+        "labels": {
+          "com.docker.compose.service": "sonarr"
+        },
+        "ports": [
+          {
+            "private_port": 8989,
+            "public_port": 8989,
+            "protocol": "tcp",
+            "ip": "127.0.0.1"
+          }
+        ],
+        "restart_count": 0
+      }
+    ],
+    "docker_inspect_container": {
+      "id": "abc123def456",
+      "name": "plex-media-server",
+      "image": "plexinc/pms-docker",
+      "image_tags": ["plexinc/pms-docker:latest"],
+      "status": "restarting",
+      "health": "unhealthy",
+      "labels": {
+        "com.docker.compose.service": "plex"
+      },
+      "ports": [],
+      "restart_count": 8
+    },
+    "docker_read_logs": {
+      "container": "plex-media-server",
+      "lines_requested": 50,
+      "max_bytes": 4096,
+      "truncated": false,
+      "logs": "SQLite3: database is locked\nCrash loop detected after DB busy errors\n"
+    },
+    "docker_detect_restart_loops": {
+      "min_restarts": 3,
+      "restart_loop_candidates": [
+        {
+          "id": "abc123def456",
+          "name": "plex-media-server",
+          "image": "plexinc/pms-docker",
+          "image_tags": ["plexinc/pms-docker:latest"],
+          "status": "restarting",
+          "health": "unhealthy",
+          "labels": {},
+          "ports": [],
+          "restart_count": 8
+        }
+      ]
+    },
+    "docker_container_action": {
+      "container": "plex-media-server",
+      "action": "restart",
+      "old_status": {
+        "status": "restarting"
+      },
+      "resulting_status": {
+        "status": "running"
+      },
+      "mock": true
+    },
+    "security_posture": {
+      "findings": [
+        {
+          "severity": "high",
+          "type": "privileged_container",
+          "evidence": "Container 'plex-media-server' is running in privileged mode.",
+          "remediation": "Remove --privileged and use specific capabilities instead."
+        }
+      ]
+    },
+    "proxmox_node_status": [
+      {
+        "node": "pve-01",
+        "status": {
+          "status": "online",
+          "cpu": 0.38,
+          "memory": {
+            "used": 19327352832,
+            "total": 34359738368
+          }
+        }
+      }
+    ],
+    "proxmox_inventory": [
+      {
+        "node": "pve-01",
+        "type": "lxc",
+        "vmid": 112,
+        "name": "plex",
+        "status": "running",
+        "cpu": 0.42,
+        "mem_bytes": 4294967296,
+        "maxmem_bytes": 8589934592,
+        "disk_bytes": 53687091200,
+        "maxdisk_bytes": 68719476736
+      }
+    ],
+    "proxmox_storage_usage": [
+      {
+        "node": "pve-01",
+        "storage": "backup-nas",
+        "type": "pbs",
+        "content": "backup",
+        "enabled": true,
+        "used_percent": 91.5,
+        "used_gb": 3660.0,
+        "total_gb": 4000.0
+      }
+    ],
+    "proxmox_backup_jobs": [
+      {
+        "id": "backup-all",
+        "enabled": true,
+        "schedule": "02:00",
+        "storage": "backup-nas",
+        "last_run_endtime": 0,
+        "last_run_state": "error",
+        "vmids": "112,120,130"
+      }
+    ],
+    "proxmox_migrate_lxc": {
+      "vmid": 112,
+      "source_node": "pve-01",
+      "target_node": "pve-02",
+      "online": true,
+      "task_id": "mock-UPID:pve-01:00000000"
+    },
+    "plex_active_sessions": {
+      "session_count": 4,
+      "sessions": [
+        {
+          "user": "alex",
+          "title": "Big Buck Bunny",
+          "player": "Roku",
+          "player_address": "192.168.1.40",
+          "decision": "transcode",
+          "transcode_hardware": false,
+          "transcode_video_codec": "h264",
+          "transcode_audio_codec": "aac",
+          "bandwidth_kbps": 25000
+        },
+        {
+          "user": "morgan",
+          "title": "Sintel",
+          "player": "Apple TV",
+          "player_address": "192.168.1.41",
+          "decision": "directplay",
+          "transcode_hardware": false,
+          "bandwidth_kbps": 8000
+        },
+        {
+          "user": "casey",
+          "title": "Tears of Steel",
+          "player": "Chrome",
+          "player_address": "192.168.1.42",
+          "decision": "transcode",
+          "transcode_hardware": false,
+          "bandwidth_kbps": 22000
+        },
+        {
+          "user": "jamie",
+          "title": "Elephants Dream",
+          "player": "Android TV",
+          "player_address": "192.168.1.43",
+          "decision": "directstream",
+          "transcode_hardware": false,
+          "bandwidth_kbps": 6000
+        }
+      ]
+    },
+    "plex_analyze_logs": {
+      "log_path": "/mock/plex/Plex Media Server.log",
+      "bytes_read": 2048,
+      "finding_counts": {
+        "sqlite_busy": 2,
+        "database_locked": 1
+      },
+      "findings": [
+        {
+          "category": "sqlite_busy",
+          "severity": "warning",
+          "line": "SQLite3: database is locked"
+        },
+        {
+          "category": "database_locked",
+          "severity": "critical",
+          "line": "Database lock held for 45 seconds"
+        }
+      ]
+    },
+    "plex_buffering_diagnosis": {
+      "risk": "high",
+      "risk_factors": [
+        "2 session(s) using software transcoding",
+        "4 concurrent sessions",
+        "2 session(s) above 20 Mbps stream bandwidth"
+      ],
+      "session_count": 4,
+      "software_transcode_count": 2,
+      "checks_to_run": [
+        "CPU and GPU utilization on the Plex host",
+        "Plex database health (see plex_analyze_logs)"
+      ]
+    },
+    "plex_debug_guidance": {
+      "log_path": "/mock/plex/Plex Media Server.log",
+      "log_status": "readable",
+      "log_inspectable": true,
+      "debug_logging_observed": true,
+      "manual_steps": [
+        "Settings > General > Show Advanced > enable verbose logging in Plex."
+      ],
+      "when_to_check": [
+        "Plex database health using plex_analyze_logs"
+      ],
+      "note": "Mock mode only reports guidance; it does not change Plex settings."
+    },
+    "arr_queue": {
+      "sonarr": {
+        "records": [
+          {
+            "id": 7,
+            "title": "Example Show S01E01",
+            "status": "warning",
+            "added": "2026-05-20T00:00:00+00:00",
+            "outputPath": "/downloads/complete/example-show",
+            "statusMessages": [
+              {
+                "messages": ["No files found are eligible for import"]
+              }
+            ]
+          }
+        ]
+      },
+      "radarr": {
+        "records": []
+      }
+    },
+    "arr_health": {
+      "sonarr": [
+        {
+          "type": "warning",
+          "source": "DownloadClientCheck",
+          "message": "qBittorrent is unavailable"
+        }
+      ],
+      "radarr": []
+    },
+    "arr_root_folders": {
+      "sonarr": [
+        {
+          "id": 1,
+          "path": "/tv"
+        }
+      ],
+      "radarr": [
+        {
+          "id": 1,
+          "path": "/movies"
+        }
+      ]
+    },
+    "arr_download_clients": {
+      "sonarr": [
+        {
+          "id": 1,
+          "name": "qBittorrent",
+          "enable": true
+        }
+      ],
+      "radarr": []
+    },
+    "arr_quality_profiles": {
+      "sonarr": [
+        {
+          "id": 1,
+          "name": "HD-1080p",
+          "upgradeAllowed": true
+        }
+      ],
+      "radarr": []
+    },
+    "arr_update_quality_profile": {
+      "service": "sonarr",
+      "profile_id": 1,
+      "before": {
+        "name": "HD-1080p",
+        "upgradeAllowed": true
+      },
+      "after": {
+        "name": "HD-1080p",
+        "upgradeAllowed": false
+      },
+      "mock": true
+    },
+    "arr_queue_item_action": {
+      "service": "sonarr",
+      "queue_id": 7,
+      "removed": true,
+      "blocklisted": true,
+      "mock": true
+    },
+    "pihole_summary": {
+      "dns_queries_today": 12043,
+      "ads_blocked_today": 0,
+      "ads_percentage_today": 0.0,
+      "domains_being_blocked": 0
+    },
+    "pihole_recent_blocked": {
+      "raw": "ads.example.test"
+    },
+    "pihole_recent_queries": {
+      "data": [
+        ["2026-05-23 12:00:00", "A", "example.test", "192.168.1.40", "2"]
+      ]
+    },
+    "unbound_stats": {
+      "total.num.queries": 12043,
+      "total.num.cachehits": 9060,
+      "total.requestlist.avg": 0.1,
+      "time.up": 86400
+    },
+    "network_scan": {
+      "subnet": "192.168.1.0/24",
+      "host_count": 2,
+      "hosts": [
+        {
+          "ip": "192.168.1.50",
+          "hostname": "unknown-iot",
+          "mac": "11:22:33:44:55:66",
+          "vendor": "Unknown",
+          "state": "up",
+          "services": []
+        },
+        {
+          "ip": "192.168.1.10",
+          "hostname": "nas",
+          "mac": "AA:BB:CC:DD:EE:FF",
+          "vendor": "TrustedNAS",
+          "state": "up",
+          "services": []
+        }
+      ]
+    },
+    "network_unknown_devices": {
+      "subnet": "192.168.1.0/24",
+      "known_count": 1,
+      "unknown_count": 1,
+      "unknown_devices": [
+        {
+          "ip": "192.168.1.50",
+          "hostname": "unknown-iot",
+          "mac": "11:22:33:44:55:66",
+          "vendor": "Unknown"
+        }
+      ]
+    }
   }
 }

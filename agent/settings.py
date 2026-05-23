@@ -95,6 +95,7 @@ class AppSettings(BaseSettings):
     )
     redis_url: str = "redis://localhost:6379/0"
     database_path: str = "/tmp/foxhole/foxhole.db"
+    mock_mode: bool = False
     event_retention_days: int = Field(default=30, ge=1)
     diagnostic_retention_days: int = Field(default=90, ge=1)
     audit_retention_days: int = Field(default=365, ge=1)
@@ -291,7 +292,7 @@ class AppSettings(BaseSettings):
         )
 
     def integration_status(self) -> dict[str, bool]:
-        return {
+        status = {
             "docker": self.docker.configured,
             "proxmox": self.proxmox.configured,
             "telegram": self.telegram.configured,
@@ -304,9 +305,21 @@ class AppSettings(BaseSettings):
             "pihole": self.pihole.configured,
             "unbound": self.unbound.configured,
         }
+        if self.mock_mode:
+            for integration in (
+                "docker",
+                "proxmox",
+                "plex",
+                "sonarr",
+                "radarr",
+                "pihole",
+                "unbound",
+            ):
+                status[integration] = True
+        return status
 
     def integration_details(self) -> dict[str, dict[str, Any]]:
-        return {
+        details = {
             "docker": self._integration_detail(
                 self.docker_enabled,
                 self.docker.configured,
@@ -395,6 +408,22 @@ class AppSettings(BaseSettings):
                 {"unbound_host": self.unbound_host is not None},
             ),
         }
+        if self.mock_mode:
+            for integration in (
+                "docker",
+                "proxmox",
+                "plex",
+                "sonarr",
+                "radarr",
+                "pihole",
+                "unbound",
+            ):
+                details[integration] = {
+                    "enabled": True,
+                    "configured": True,
+                    "missing_configuration": [],
+                }
+        return details
 
     def _integration_detail(
         self, enabled: bool, configured: bool, required: dict[str, bool]
@@ -413,6 +442,7 @@ class AppSettings(BaseSettings):
             "api_auth_configured": self.api_auth_configured,
             "redis_url": redact_url(self.redis_url),
             "database_path": self.database_path,
+            "mock_mode": self.mock_mode,
             "retention_days": {
                 "events": self.event_retention_days,
                 "diagnostics": self.diagnostic_retention_days,

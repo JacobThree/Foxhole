@@ -30,6 +30,19 @@ def test_missing_optional_integrations_do_not_disable_core_settings() -> None:
     assert status["radarr"] is False
 
 
+def test_mock_mode_marks_runtime_integrations_available() -> None:
+    settings = AppSettings(mock_mode=True)
+
+    status = settings.integration_status()
+    details = settings.integration_details()
+
+    for integration in ("docker", "proxmox", "plex", "sonarr", "radarr", "pihole", "unbound"):
+        assert status[integration] is True
+        assert details[integration]["enabled"] is True
+        assert details[integration]["configured"] is True
+        assert details[integration]["missing_configuration"] == []
+
+
 def test_secret_redaction_excludes_raw_values() -> None:
     settings = AppSettings(
         api_bearer_token=SecretStr("api-secret"),
