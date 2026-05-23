@@ -62,6 +62,7 @@ Implementation order should build foundations first, then deliver vertical diagn
 - **Background work uses Celery 5 and Redis 7.** Scheduled checks, scans, and alert fanout should not block chat or HTTP requests.
 - **Telegram is the first alert destination.** Keep the alert dispatcher pluggable so Discord, SMTP, or webhooks can be added without changing task logic.
 - **No broad network scanning.** Nmap tools must reject public IP ranges and only allow RFC1918 targets.
+- **Opt-in modular architecture.** The agent supports the most popular homelab services (Plex, *Arr, Proxmox, Pi-hole, Portainer, etc.) out-of-the-box, treated as optional plugins. Users enable only what they run via UI toggles, and the LLM's available tools are dynamically scoped to only include tools for explicitly enabled services.
 - **Repository polish is part of the product.** README, examples, command naming, and docs should feel intentionally written for self-hosters, not like generic generated scaffolding.
 
 ## Task List
@@ -127,14 +128,15 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 ---
 
-### Task 3: Implement settings and secret loading
+### Task 3: Implement modular settings and secret loading
 
-**Description:** Add a Pydantic settings layer that reads environment variables and optional config files from `/etc/homelab-agent`. Separate required, optional, and write-action settings so read-only deployments can start with fewer secrets.
+**Description:** Add a Pydantic settings layer that reads environment variables and optional config files from `/etc/homelab-agent`. The architecture must treat all specific integrations (Plex, Sonarr, Proxmox, etc.) as strictly optional plugins. The core agent must boot cleanly even if zero integrations are enabled.
 
 **Acceptance criteria:**
 
 - [x] Settings validate provider, Redis, API auth, and integration environment variables.
-- [x] Missing optional integrations do not crash the whole app.
+- [x] Integrations default to disabled; missing optional integrations do not crash the app.
+- [x] Tool registry dynamically registers only tools for integrations that are explicitly enabled.
 - [x] Config redaction prevents tokens and API keys from appearing in logs or health output.
 
 **Verification:**
@@ -1113,13 +1115,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 ---
 
-### Task 36: Build settings and provider configuration UI
+### Task 36: Build settings and modular plugin configuration UI
 
-**Description:** Add settings pages for provider aliases, integration availability, alert destinations, allowed scan subnets, and write-action mode. Avoid exposing raw secret values after save.
+**Description:** Add a comprehensive settings page in the dashboard where users can opt-in and toggle integrations (Plex, Sonarr, Proxmox, Pi-hole, etc.), manage provider aliases, set alert destinations, and configure write-action mode. This should act as the central hub for turning agent capabilities on and off. Avoid exposing raw secret values after save.
 
 **Acceptance criteria:**
 
-- [x] Settings show configured/unconfigured status for each integration.
+- [x] Settings dashboard acts as an "opt-in" module hub showing enabled/disabled status and configuration for each integration.
+- [x] The agent dynamically hides tools and checks for any integration that is toggled off.
 - [x] Secrets are write-only or redacted after save.
 - [x] Write-action mode clearly shows Stage 1 read-only, Stage 2 confirmed writes, or Stage 3 autonomous rules.
 
