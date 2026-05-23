@@ -60,3 +60,29 @@ def test_readyz_returns_503_when_redis_is_unavailable() -> None:
     assert response.status_code == 503
     assert response.json()["detail"]["checks"]["redis"] is False
 
+
+def test_update_settings_persists_and_clears_cache(monkeypatch) -> None:
+    app.dependency_overrides[get_settings] = _settings
+    app.dependency_overrides[check_redis_ready] = lambda: True
+    client = TestClient(app)
+
+    # We mock update_env_file to avoid writing to actual .env
+    calls = []
+    def mock_update_env_file(updates, env_path=".env"):
+        calls.append(updates)
+        
+    monkeypatch.setattr("agent.settings.update_env_file", mock_update_env_file)
+
+    payload = {
+        "updates": {
+            "plex_enabled": True,
+            "plex_base_url": "http://new-plex.local",
+            "plex_token": None
+        }
+    }
+    response = client.patch("/settings", json=payload, headers={"Authorization": "Bearer test-token"})
+    assert response.status_code == 200
+    assert len(calls) == 1
+    assert calls[0]["FOXHOLE_PLEX_ENABLED"] == "true"
+    assert calls[0]["FOXHOLE_PLEX_BASE_URL"] == "http://new-plex.local"
+    assert calls[0]["FOXHOLE_PLEX_TOKEN"] is None

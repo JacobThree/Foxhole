@@ -90,6 +90,38 @@ async def chat(
 ) -> ChatResponse:
     return await orchestrator.chat(request)
 
+
+class SettingsUpdate(BaseModel):
+    updates: dict[str, str | bool | None]
+
+
+@app.patch("/settings", response_model=dict[str, Any])
+async def update_settings_endpoint(
+    request: SettingsUpdate,
+    _: Annotated[None, Depends(require_bearer_token)],
+) -> dict[str, Any]:
+    from agent.settings import update_env_file
+    env_updates = {}
+    for k, v in request.updates.items():
+        if v is None:
+            env_updates[f"FOXHOLE_{k.upper()}"] = None
+        else:
+            env_updates[f"FOXHOLE_{k.upper()}"] = str(v).lower() if isinstance(v, bool) else str(v)
+            
+    update_env_file(env_updates)
+    get_settings.cache_clear()
+    
+    # We must also clear the orchestrator tools cache so the updated settings 
+    # dynamically reload the registered tools without restarting the backend process.
+    from agent.tools.registry import default_registry, register_builtin_tools
+    default_registry._tools.clear()
+    import agent.tools.registry as reg
+    reg._builtins_registered = False
+    register_builtin_tools(default_registry)
+    
+    return get_settings().redacted_summary()
+
+
 @app.get("/events", response_model=list[dict[str, Any]])
 async def list_events(
     _: Annotated[None, Depends(require_bearer_token)],

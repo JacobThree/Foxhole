@@ -259,6 +259,38 @@ def redact_url(value: str) -> str:
     return f"{scheme}://********@{host}" if scheme else f"********@{host}"
 
 
+import os
+
+def update_env_file(updates: dict[str, str | None], env_path: str = ".env") -> None:
+    lines = []
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            lines = f.readlines()
+            
+    new_lines = []
+    keys_updated = set()
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            new_lines.append(line)
+            continue
+        key = stripped.split("=", 1)[0]
+        if key in updates:
+            val = updates[key]
+            if val is not None:
+                new_lines.append(f"{key}={val}\n")
+            keys_updated.add(key)
+        else:
+            new_lines.append(line)
+            
+    for k, v in updates.items():
+        if k not in keys_updated and v is not None:
+            new_lines.append(f"{k}={v}\n")
+            
+    with open(env_path, "w") as f:
+        f.writelines(new_lines)
+
+
 @lru_cache
 def get_settings() -> AppSettings:
     return AppSettings()
