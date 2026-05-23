@@ -6,7 +6,9 @@ The first milestone is intentionally conservative: collect diagnostics, expose h
 
 ## Current Status
 
-Phase 4 builds infrastructure diagnostics:
+**v0.1.0 (MVP) is complete!** 
+
+Foxhole now provides a complete diagnostic suite, including a Next.js web UI, background Celery workers, and a simulated mock mode for testing without a real homelab. Write actions are fully gated behind explicit user confirmation tokens (Stage 2).
 
 - Python package scaffold for the agent, tools, workers, schemas, deployment artifacts, and docs.
 - Pydantic settings with redacted secret output.
