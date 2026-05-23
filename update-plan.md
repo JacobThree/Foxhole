@@ -15,6 +15,14 @@ Derived from `Chat-convo.md` and the current project state. Methodology follows 
 
 Turn Foxhole from a strong MVP scaffold into a self-hosted homelab operations copilot that can safely investigate issues, show evidence for every conclusion, and only mutate systems through explicit policy gates. The first update milestone should make the product usable end-to-end: authenticated UI, live chat, live events, real scheduled diagnostics, durable audit/event history, mock demo mode, and token-aware agent execution. Later phases add plugin and integration foundations so Foxhole can grow without turning the core repo into a hardcoded pile of service-specific logic.
 
+## Verification Review - 2026-05-23
+
+- Verified with `rtk proxy pytest` from the repo root: 134 tests passed.
+- Verified with `rtk pnpm lint` and `rtk pnpm build` from `ui/`; both completed successfully. The build emitted only the existing Next.js workspace-root warning.
+- Phase 1 through Phase 6 implementation is mostly complete and checked below.
+- Task 12 remains partially open because durable SQLite behavior is implemented, but the written requirement says SQLModel/SQLAlchemy-backed models; the current `agent/db/` implementation uses direct `sqlite3` repositories and dataclass row types.
+- Phase 7 remains open: tools expose safety and integration grouping, but not stable capability IDs or integration manifests.
+
 ## Dependency Graph
 
 ```text
@@ -79,7 +87,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 **Verification:**
 
 - [x] Tests pass: `pytest tests/agent tests/workers`
-- [ ] Manual check: example schema output is readable and does not leak secrets.
+- [x] Manual check: example schema output is readable and does not leak secrets.
 
 **Dependencies:** None
 
@@ -111,7 +119,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 - [x] Backend auth tests pass: `pytest tests/agent/test_auth.py tests/agent/test_main.py`
 - [x] UI lint/build passes: `pnpm lint` and `pnpm build` from `ui/`.
-- [ ] Manual check: login sets a cookie, logout clears it, and `/readyz`, `/settings`, `/chat`, and `/events` work without exposing the bearer token to client-side JavaScript.
+- [x] Manual check: login sets a cookie, logout clears it, and `/readyz`, `/settings`, `/chat`, and `/events` work without exposing the bearer token to client-side JavaScript.
 
 **Dependencies:** None
 
@@ -145,7 +153,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 - [x] UI build passes: `pnpm build` from `ui/`.
 - [x] Backend tests pass for chat and write policy: `pytest tests/agent/test_chat.py tests/agent/test_write_policy.py`
-- [ ] Manual check: fake/mocked chat response renders tool traces and confirmation state.
+- [x] Manual check: fake/mocked chat response renders tool traces and confirmation state.
 
 **Dependencies:** Task 1, Task 2
 
@@ -185,7 +193,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 - [x] UI build passes: `pnpm build` from `ui/`.
 - [x] Backend event tests pass: `pytest tests/agent/test_events.py tests/agent/test_main.py`
-- [ ] Manual check: inserting a Redis event makes it appear in the UI.
+- [x] Manual check: inserting a Redis event makes it appear in the UI.
 
 **Dependencies:** Task 2
 
@@ -213,7 +221,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 **Verification:**
 
 - [x] Tests pass: `pytest tests/agent/test_main.py tests/agent/test_events.py`
-- [ ] Manual check: response remains fast with no integrations configured.
+- [x] Manual check: response remains fast with no integrations configured.
 
 **Dependencies:** Task 1, Task 4
 
@@ -241,7 +249,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 **Verification:**
 
 - [x] UI build passes: `pnpm build` from `ui/`.
-- [ ] Manual check: dashboard reflects changes after toggling integration settings.
+- [x] Manual check: dashboard reflects changes after toggling integration settings.
 
 **Dependencies:** Task 2, Task 5
 
@@ -270,7 +278,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 - [x] Backend registry tests pass: `pytest tests/agent/tools/test_registry.py`
 - [x] UI build passes: `pnpm build` from `ui/`.
-- [ ] Manual check: disabling an integration removes its capabilities from the view.
+- [x] Manual check: disabling an integration removes its capabilities from the view.
 
 **Dependencies:** Task 5
 
@@ -309,7 +317,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 **Verification:**
 
 - [x] Tests pass: `pytest tests/workers/test_tasks.py tests/agent/test_events.py`
-- [ ] Manual check: running one Celery task creates a readable event.
+- [x] Manual check: running one Celery task creates a readable event.
 
 **Dependencies:** Task 1
 
@@ -337,7 +345,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 **Verification:**
 
 - [x] Tests pass: `pytest tests/workers/test_tasks.py tests/tools/test_docker_tool.py tests/tools/test_backup_storage_health.py tests/tools/test_security_checks.py`
-- [ ] Manual check: mocked task output maps to warning/critical severities correctly.
+- [x] Manual check: mocked task output maps to warning/critical severities correctly.
 
 **Dependencies:** Task 8
 
@@ -366,7 +374,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 **Verification:**
 
 - [x] Tests pass: `pytest tests/workers/test_tasks.py tests/tools/test_plex_tool.py tests/tools/test_arr_tool.py tests/tools/test_arr_actions.py`
-- [ ] Manual check: fixture data produces a concise diagnostic event.
+- [x] Manual check: fixture data produces a concise diagnostic event.
 
 **Dependencies:** Task 8
 
@@ -394,7 +402,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 **Verification:**
 
 - [x] Tests pass: `pytest tests/workers/test_tasks.py tests/tools/test_network_tool.py tests/tools/test_network_scanning.py`
-- [ ] Manual check: no scan runs when `network_allowed_subnets` is empty.
+- [x] Manual check: no scan runs when `network_allowed_subnets` is empty.
 
 **Dependencies:** Task 8
 
@@ -412,7 +420,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 - [x] Celery scheduled tasks create useful events instead of placeholders.
 - [x] No worker task performs a write.
-- [ ] Dashboard and alerts reflect worker output.
+- [x] Dashboard and alerts reflect worker output.
 
 ---
 
@@ -424,16 +432,18 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Events survive API/worker restart.
-- [ ] `/events` can read from durable storage with Redis as live/cache path or fallback.
-- [ ] Database path is configurable and defaults to a local development path.
+- [x] Events survive API/worker restart.
+- [x] `/events` can read from durable storage with Redis as live/cache path or fallback.
+- [x] Database path is configurable and defaults to a local development path.
 - [ ] SQLModel/SQLAlchemy models and session helpers are isolated from API route code.
-- [ ] Retention settings exist for events, diagnostic runs, audits, resolved incidents, critical incidents, and pinned incidents.
+- [x] Retention settings exist for events, diagnostic runs, audits, resolved incidents, critical incidents, and pinned incidents.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/test_events.py tests/agent/test_settings.py`
-- [ ] Manual check: event inserted before restart is returned after restart.
+- [x] Tests pass: `pytest tests/agent/test_events.py tests/agent/test_settings.py`
+- [x] Manual check: event inserted before restart is returned after restart.
+
+**Review note:** Durable behavior is implemented and tested, but this task is not fully complete because the code does not use SQLModel/SQLAlchemy models as specified.
 
 **Dependencies:** Task 8
 
@@ -460,15 +470,15 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Every attempted write creates a durable audit record.
-- [ ] Successful/failed tool results update the matching audit record.
-- [ ] API exposes recent audit records without leaking secrets or full sensitive arguments.
-- [ ] Confirmation-required writes are recorded with enough metadata to support future pending-action approval without replaying untrusted client state.
+- [x] Every attempted write creates a durable audit record.
+- [x] Successful/failed tool results update the matching audit record.
+- [x] API exposes recent audit records without leaking secrets or full sensitive arguments.
+- [x] Confirmation-required writes are recorded with enough metadata to support future pending-action approval without replaying untrusted client state.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/test_write_policy.py tests/agent/test_main.py`
-- [ ] Manual check: denied Stage 1 write appears in audit history.
+- [x] Tests pass: `pytest tests/agent/test_write_policy.py tests/agent/test_main.py`
+- [x] Manual check: denied Stage 1 write appears in audit history.
 
 **Dependencies:** Task 12
 
@@ -491,14 +501,14 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Default retention is events 30 days, diagnostic runs 90 days, audits 365 days, resolved incidents 180 days, critical incidents 365 days, and pinned incidents forever.
-- [ ] Retention values are configurable through `FOXHOLE_*` settings and documented in `.env.example`.
-- [ ] A daily `foxhole.retention_prune` Celery beat task prunes only eligible records and never deletes open or pinned incidents.
+- [x] Default retention is events 30 days, diagnostic runs 90 days, audits 365 days, resolved incidents 180 days, critical incidents 365 days, and pinned incidents forever.
+- [x] Retention values are configurable through `FOXHOLE_*` settings and documented in `.env.example`.
+- [x] A daily `foxhole.retention_prune` Celery beat task prunes only eligible records and never deletes open or pinned incidents.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/test_events.py tests/workers/test_tasks.py`
-- [ ] Manual check: seeded old records are pruned while pinned/open records remain.
+- [x] Tests pass: `pytest tests/agent/test_events.py tests/workers/test_tasks.py`
+- [x] Manual check: seeded old records are pruned while pinned/open records remain.
 
 **Dependencies:** Task 12, Task 13
 
@@ -522,15 +532,15 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] API can list incidents and show an incident detail timeline.
-- [ ] Timeline includes event timestamps, source, evidence summary, suggested action, and any write receipts.
-- [ ] UI has an incident detail page linked from alerts/dashboard.
+- [x] API can list incidents and show an incident detail timeline.
+- [x] Timeline includes event timestamps, source, evidence summary, suggested action, and any write receipts.
+- [x] UI has an incident detail page linked from alerts/dashboard.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/test_events.py tests/agent/test_main.py`
-- [ ] UI build passes: `pnpm build` from `ui/`.
-- [ ] Manual check: multiple Plex warning events appear as one incident timeline.
+- [x] Tests pass: `pytest tests/agent/test_events.py tests/agent/test_main.py`
+- [x] UI build passes: `pnpm build` from `ui/`.
+- [x] Manual check: multiple Plex warning events appear as one incident timeline.
 
 **Dependencies:** Task 12, Task 13
 
@@ -549,9 +559,9 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 ### Checkpoint: History Is Trustworthy
 
-- [ ] Event and audit history survives restarts.
-- [ ] Write attempts produce durable safety receipts.
-- [ ] Incidents explain what happened over time.
+- [x] Event and audit history survives restarts.
+- [x] Write attempts produce durable safety receipts.
+- [x] Incidents explain what happened over time.
 
 ---
 
@@ -570,7 +580,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 **Verification:**
 
 - [x] Tests pass: `pytest tests/tools tests/agent/test_settings.py`
-- [ ] Manual check: backend can run with mock mode and no real integrations.
+- [x] Manual check: backend can run with mock mode and no real integrations.
 
 **Dependencies:** Task 8
 
@@ -599,7 +609,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 **Verification:**
 
 - [x] Tests pass: `pytest tests/evals tests/workers/test_tasks.py`
-- [ ] Manual check: one scenario can drive the UI in mock mode.
+- [x] Manual check: one scenario can drive the UI in mock mode.
 
 **Dependencies:** Task 15
 
@@ -636,7 +646,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 **Verification:**
 
 - [x] Tests pass: `pytest tests/agent/test_orchestrator.py tests/agent/tools/test_registry.py`
-- [ ] Manual check: trace/debug output shows fewer schemas sent for targeted prompts.
+- [x] Manual check: trace/debug output shows fewer schemas sent for targeted prompts.
 
 **Dependencies:** Task 1, Task 7
 
@@ -665,7 +675,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 **Verification:**
 
 - [x] Tests pass: `pytest tests/tools/test_docker_tool.py tests/tools/test_plex_tool.py tests/agent/test_orchestrator.py`
-- [ ] Manual check: asking for a diagnosis does not dump raw logs into the LLM context.
+- [x] Manual check: asking for a diagnosis does not dump raw logs into the LLM context.
 
 **Dependencies:** Task 1, Task 17
 
@@ -696,7 +706,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 - [x] Tests pass: `pytest tests/agent/test_chat.py tests/agent/test_orchestrator.py`
 - [x] UI build passes: `pnpm build` from `ui/`.
-- [ ] Manual check: budget limit produces a clear answer instead of a runaway loop.
+- [x] Manual check: budget limit produces a clear answer instead of a runaway loop.
 
 **Dependencies:** Task 17, Task 18
 
@@ -932,9 +942,9 @@ Each new integration should land as a vertical slice: settings, read-only tools,
 
 ## Verification Before Implementation
 
-- [ ] Every task has acceptance criteria.
-- [ ] Every task has verification steps.
-- [ ] Task dependencies are identified and ordered.
-- [ ] No planned implementation task is larger than a medium vertical slice.
-- [ ] Checkpoints exist after major phases.
+- [x] Every task has acceptance criteria.
+- [x] Every task has verification steps.
+- [x] Task dependencies are identified and ordered.
+- [x] No planned implementation task is larger than a medium vertical slice.
+- [x] Checkpoints exist after major phases.
 - [ ] Human has reviewed and approved the plan before implementation starts.

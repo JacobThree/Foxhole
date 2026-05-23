@@ -14,6 +14,17 @@ export default function IntegrationsSettingsPage() {
   const [capabilities, setCapabilities] = useState<IntegrationCapabilities[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const configuredCount = capabilities.filter((item) => item.configured).length;
+  const visibleCapabilityCount = capabilities.reduce(
+    (total, item) => total + item.capabilities.length,
+    0,
+  );
+  const writeCapabilityCount = capabilities.reduce(
+    (total, item) =>
+      total +
+      item.capabilities.filter((capability) => capability.safety !== "read_only").length,
+    0,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +97,26 @@ export default function IntegrationsSettingsPage() {
           <p className="mt-1 text-sm text-slate-400">
             Configured integrations, read-only capabilities, and confirmation-gated actions.
           </p>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <div className="border border-slate-800 bg-slate-950 p-3">
+              <div className="text-xs uppercase text-slate-500">Configured integrations</div>
+              <div className="mt-1 text-lg font-semibold text-slate-100">
+                {configuredCount} / {capabilities.length}
+              </div>
+            </div>
+            <div className="border border-slate-800 bg-slate-950 p-3">
+              <div className="text-xs uppercase text-slate-500">Visible capabilities</div>
+              <div className="mt-1 text-lg font-semibold text-slate-100">
+                {visibleCapabilityCount}
+              </div>
+            </div>
+            <div className="border border-slate-800 bg-slate-950 p-3">
+              <div className="text-xs uppercase text-slate-500">Write-capable tools</div>
+              <div className="mt-1 text-lg font-semibold text-slate-100">
+                {writeCapabilityCount}
+              </div>
+            </div>
+          </div>
         </div>
         <div className="divide-y divide-slate-800">
           {capabilities.map((item) => (
@@ -127,11 +158,20 @@ export default function IntegrationsSettingsPage() {
                             {capability.description}
                           </div>
                         </div>
-                        <span className="w-fit rounded bg-slate-800 px-2 py-1 text-xs text-slate-300">
-                          {capability.safety}
+                        <span
+                          className={`w-fit rounded px-2 py-1 text-xs font-medium ${
+                            capability.safety === "read_only"
+                              ? "bg-emerald-950 text-emerald-300"
+                              : "bg-amber-950 text-amber-300"
+                          }`}
+                        >
+                          {formatSafety(capability.safety)}
                         </span>
                       </div>
-                      <div className="mt-3 text-xs text-slate-500">
+                      <div className="mt-3 text-xs font-medium uppercase text-slate-500">
+                        Write-stage behavior
+                      </div>
+                      <div className="mt-1 text-xs text-slate-400">
                         {capability.stage_behavior}
                       </div>
                     </div>
@@ -248,4 +288,11 @@ export default function IntegrationsSettingsPage() {
 
     </div>
   );
+}
+
+function formatSafety(safety: string) {
+  if (safety === "read_only") return "Read-only";
+  if (safety === "requires_confirmation") return "Confirmation required";
+  if (safety === "autonomous_allowed") return "Policy-gated write";
+  return safety;
 }
