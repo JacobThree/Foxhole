@@ -5,7 +5,6 @@ from typing import Any
 import pytest
 
 from agent.settings import AppSettings
-from agent.tools.base import ToolResult
 from schemas.python.network import NetworkScanArgs, UnknownDeviceArgs
 from tools import network_tool
 
@@ -29,7 +28,9 @@ def test_refuse_unsafe_subnet_rejects_public_ips(monkeypatch: pytest.MonkeyPatch
     assert "RFC1918" in result.error
 
 
-def test_refuse_unsafe_subnet_rejects_unallowed_private_ips(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_refuse_unsafe_subnet_rejects_unallowed_private_ips(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(network_tool, "get_settings", _settings)
 
     result = network_tool.network_scan(NetworkScanArgs(subnet="10.0.0.0/24"))

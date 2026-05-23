@@ -35,7 +35,12 @@ def test_security_checks_detects_privileged_container(monkeypatch: pytest.Monkey
             return MockClient()
 
     monkeypatch.setattr(security_tool, "get_settings", lambda: AppSettings())
-    monkeypatch.setattr(security_tool, "importlib", type("mock_importlib", (), {"import_module": lambda name: MockDocker() if name == "docker" else None}))
+    mock_importlib = type(
+        "mock_importlib",
+        (),
+        {"import_module": lambda name: MockDocker() if name == "docker" else None},
+    )
+    monkeypatch.setattr(security_tool, "importlib", mock_importlib)
     
     result = security_tool.security_posture(SecurityPostureArgs())
     

@@ -1,9 +1,11 @@
 import json
 import os
 
+
 class MockMode:
     """
-    Mock mode interceptor for running Foxhole UI and Backend locally without real homelab credentials.
+    Mock mode interceptor for running Foxhole UI and Backend locally
+    without real homelab credentials.
     If FOXHOLE_MOCK_MODE=1, tools will return static data from tests/fixtures/mock-data.json.
     """
     
@@ -18,7 +20,7 @@ class MockMode:
             "..", "tests", "fixtures", "mock-data.json"
         )
         try:
-            with open(fixture_path, "r") as f:
+            with open(fixture_path) as f:
                 data = json.load(f)
                 return data.get(domain, {})
         except FileNotFoundError:

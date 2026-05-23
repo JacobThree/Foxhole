@@ -78,7 +78,7 @@ def _check_proxmox(settings: Any, findings: list[dict[str, str]]) -> None:
     if not settings.proxmox.configured:
         return
     try:
-        from tools.proxmox_tool import build_proxmox_client, _split_token_id
+        from tools.proxmox_tool import build_proxmox_client
         client = build_proxmox_client(settings)
         token_id = settings.proxmox_token_id.get_secret_value() if settings.proxmox_token_id else ""
         if not token_id:
@@ -89,7 +89,7 @@ def _check_proxmox(settings: Any, findings: list[dict[str, str]]) -> None:
         
         # permissions can be a dict mapping path to privileges
         if isinstance(perms, dict):
-            for path, data in perms.items():
+            for _path, data in perms.items():
                 if isinstance(data, dict) and "privs" in data:
                     all_privs.update(data["privs"])
                 elif isinstance(data, list):
@@ -98,10 +98,12 @@ def _check_proxmox(settings: Any, findings: list[dict[str, str]]) -> None:
         dangerous = {"VM.Allocate", "Sys.Modify", "Datastore.Allocate", "User.Modify"}
         found_dangerous = dangerous.intersection(all_privs)
         if found_dangerous:
+            dangerous_str = ", ".join(sorted(found_dangerous))
+            evidence = f"Proxmox token has dangerous privileges: {dangerous_str}"
             findings.append({
                 "severity": "high",
                 "type": "proxmox_privilege_drift",
-                "evidence": f"Proxmox token has dangerous privileges: {', '.join(sorted(found_dangerous))}",
+                "evidence": evidence,
                 "remediation": "Restrict token to audit-only roles."
             })
     except Exception as exc:

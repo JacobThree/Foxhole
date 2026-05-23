@@ -290,7 +290,9 @@ def _refuse_unsafe_subnet(subnet: str, settings: AppSettings) -> ToolResult | No
             success=False,
             error="No allowed subnets configured. Set FOXHOLE_NETWORK_ALLOWED_SUBNETS first.",
         )
-    allowed = [ipaddress.ip_network(value, strict=False) for value in settings.network_allowed_subnets]
+    allowed = [
+        ipaddress.ip_network(value, strict=False) for value in settings.network_allowed_subnets
+    ]
     if not any(network.subnet_of(block) for block in allowed):  # type: ignore[arg-type]
         return ToolResult(
             success=False,
