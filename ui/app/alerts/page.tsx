@@ -1,42 +1,83 @@
 "use client";
 
-import { useState } from "react";
-import { EventTable, EventItem } from "@/components/event-table";
-import { Filter } from "lucide-react";
+import { useEffect, useState } from "react";
+import { EventItem, EventSeverity, EventTable } from "@/components/event-table";
+import { ApiEvent, fetchApi, isApiError } from "@/lib/api-client";
+import { RefreshCw } from "lucide-react";
+
+type LoadState = "loading" | "ready" | "unauthenticated" | "error";
+
+function normalizeSeverity(severity: string): EventSeverity {
+  const value = severity.toLowerCase();
+  if (value === "critical" || value === "error" || value === "high") return "critical";
+  if (value === "warning" || value === "warn" || value === "medium") return "warning";
+  return "info";
+}
+
+function formatTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "medium",
+  }).format(date);
+}
+
+function toEventItem(event: ApiEvent): EventItem {
+  return {
+    id: event.id,
+    timestamp: formatTimestamp(event.timestamp),
+    severity: normalizeSeverity(event.severity),
+    source: event.source,
+    message: event.payload_summary,
+    correlationId: event.correlation_id,
+  };
+}
 
 export default function AlertsPage() {
-  const [events, setEvents] = useState<EventItem[]>([
-    {
-      id: "ev_1",
-      timestamp: "2026-05-23 00:15:22",
-      severity: "critical",
-      source: "plex-media-server",
-      message: "Database corruption warning detected in Plex logs.",
-      acknowledged: false,
-    },
-    {
-      id: "ev_2",
-      timestamp: "2026-05-22 23:45:10",
-      severity: "warning",
-      source: "pve-backup",
-      message: "Proxmox datastore 'backups' is above 85% capacity.",
-      acknowledged: true,
-    },
-    {
-      id: "ev_3",
-      timestamp: "2026-05-22 21:05:01",
-      severity: "info",
-      source: "network-scan",
-      message: "New unknown MAC address detected on VLAN 10.",
-      acknowledged: false,
-    }
-  ]);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [state, setState] = useState<LoadState>("loading");
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAcknowledge = (id: string) => {
-    setEvents(events.map(ev => 
-      ev.id === id ? { ...ev, acknowledged: true } : ev
-    ));
+  const loadEvents = async () => {
+    setState("loading");
+    setError(null);
+    try {
+      const data = await fetchApi<ApiEvent[]>("/events?limit=100");
+      setEvents(data.map(toEventItem));
+      setState("ready");
+    } catch (err) {
+      if (isApiError(err) && err.status === 401) {
+        setState("unauthenticated");
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Could not load events.");
+      setState("error");
+    }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchApi<ApiEvent[]>("/events?limit=100")
+      .then((data) => {
+        if (cancelled) return;
+        setEvents(data.map(toEventItem));
+        setState("ready");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (isApiError(err) && err.status === 401) {
+          setState("unauthenticated");
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Could not load events.");
+        setState("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -47,15 +88,33 @@ export default function AlertsPage() {
             System events and diagnostic findings
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 px-4 py-2 rounded-lg transition-colors text-sm font-medium">
-            <Filter size={16} />
-            Filter
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={loadEvents}
+          disabled={state === "loading"}
+          className="flex items-center gap-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:text-slate-600 text-slate-300 px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+        >
+          <RefreshCw size={16} className={state === "loading" ? "animate-spin" : ""} />
+          Refresh
+        </button>
       </div>
 
-      <EventTable events={events} onAcknowledge={handleAcknowledge} />
+      {state === "loading" && (
+        <div className="rounded-lg border border-slate-800 bg-slate-900 p-6 text-sm text-slate-400">
+          Loading events...
+        </div>
+      )}
+      {state === "unauthenticated" && (
+        <div className="rounded-lg border border-yellow-900/60 bg-yellow-950/30 p-6 text-sm text-yellow-200">
+          Sign in from Settings before viewing events.
+        </div>
+      )}
+      {state === "error" && (
+        <div className="rounded-lg border border-red-900/60 bg-red-950/30 p-6 text-sm text-red-200">
+          {error}
+        </div>
+      )}
+      {state === "ready" && <EventTable events={events} />}
     </div>
   );
 }

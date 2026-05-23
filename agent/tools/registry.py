@@ -4,11 +4,15 @@ import builtins
 import inspect
 import time
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
 from agent.tools.base import ToolResult, ToolSafety, ToolSpec
+
+if TYPE_CHECKING:
+    from agent.settings import AppSettings
+    from schemas.python.events import IntegrationCapabilities
 
 ToolHandler = Callable[[BaseModel], ToolResult | Awaitable[ToolResult]]
 
@@ -98,9 +102,24 @@ class ToolRegistry:
 
 default_registry = ToolRegistry()
 _builtins_registered = False
+INTEGRATION_TOOL_PREFIXES = {
+    "docker": ("docker_",),
+    "proxmox": ("proxmox_", "backup_"),
+    "plex": ("plex_",),
+    "sonarr": ("arr_",),
+    "radarr": ("arr_",),
+    "tautulli": ("observability_",),
+    "overseerr": ("observability_",),
+    "portainer": ("portainer_",),
+    "pihole": ("network_",),
+    "unbound": ("network_",),
+    "security": ("security_",),
+}
 
 
-def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
+def register_builtin_tools(
+    registry: ToolRegistry = default_registry, settings: AppSettings | None = None
+) -> None:
     global _builtins_registered
     if registry is default_registry and _builtins_registered:
         return
@@ -117,7 +136,7 @@ def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
     from tools.proxmox_tool import register_tools as register_proxmox_tools
     from tools.security_tool import register_tools as register_security_tools
 
-    status = get_settings().integration_status()
+    status = (settings or get_settings()).integration_status()
 
     if status.get("docker"):
         register_docker_tools(registry)
@@ -140,3 +159,52 @@ def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
 
     if registry is default_registry:
         _builtins_registered = True
+
+
+def integration_capabilities(
+    settings: AppSettings, registry: ToolRegistry
+) -> list[IntegrationCapabilities]:
+    from schemas.python.events import IntegrationCapabilities, ToolCapability
+
+    details = settings.integration_details()
+    details["security"] = {
+        "enabled": True,
+        "configured": True,
+        "missing_configuration": [],
+    }
+
+    capabilities: list[IntegrationCapabilities] = []
+    for integration, detail in details.items():
+        prefixes = INTEGRATION_TOOL_PREFIXES.get(integration, ())
+        configured = bool(detail["configured"])
+        visible_tools = [
+            tool
+            for tool in registry.list()
+            if configured and any(tool.name.startswith(prefix) for prefix in prefixes)
+        ]
+        capabilities.append(
+            IntegrationCapabilities(
+                integration=integration,
+                enabled=bool(detail["enabled"]),
+                configured=configured,
+                missing_configuration=list(detail["missing_configuration"]),
+                capabilities=[
+                    ToolCapability(
+                        tool_name=tool.name,
+                        description=tool.description,
+                        safety=tool.safety.value,
+                        stage_behavior=_stage_behavior(tool.safety),
+                    )
+                    for tool in visible_tools
+                ],
+            )
+        )
+    return capabilities
+
+
+def _stage_behavior(safety: ToolSafety) -> str:
+    if safety is ToolSafety.READ_ONLY:
+        return "Read-only in all write-safety stages."
+    if safety is ToolSafety.REQUIRES_CONFIRMATION:
+        return "Denied in Stage 1, confirmation-gated in Stage 2, policy-gated in Stage 3."
+    return "Denied in Stage 1, confirmation-gated in Stage 2, allowed by policy in Stage 3."

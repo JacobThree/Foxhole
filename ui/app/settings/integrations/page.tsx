@@ -2,21 +2,33 @@
 
 import { type FormEvent, useState, useEffect } from "react";
 import { SettingsForm, FormGroup } from "@/components/settings-form";
-import { ReadyResponse, fetchApi, isApiError } from "@/lib/api-client";
+import {
+  IntegrationCapabilities,
+  ReadyResponse,
+  fetchApi,
+  isApiError,
+} from "@/lib/api-client";
 
 export default function IntegrationsSettingsPage() {
   const [settings, setSettings] = useState<ReadyResponse["settings"] | null>(null);
+  const [capabilities, setCapabilities] = useState<IntegrationCapabilities[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // We fetch the current status from /readyz to know what is enabled
   useEffect(() => {
-    fetchApi<ReadyResponse>("/readyz")
-      .then((data) => {
-        setSettings(data.settings);
+    let cancelled = false;
+    Promise.all([
+      fetchApi<ReadyResponse>("/readyz"),
+      fetchApi<IntegrationCapabilities[]>("/capabilities"),
+    ])
+      .then(([ready, capabilityData]) => {
+        if (cancelled) return;
+        setSettings(ready.settings);
+        setCapabilities(capabilityData);
         setLoading(false);
       })
       .catch((err) => {
+        if (cancelled) return;
         if (isApiError(err) && err.status === 401) {
           setError("Session expired. Open General settings and sign in again.");
         } else if (isApiError(err) && err.status === 503) {
@@ -26,6 +38,10 @@ export default function IntegrationsSettingsPage() {
         }
         setLoading(false);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSubmit = async (e: FormEvent, integrationName: string) => {
@@ -51,6 +67,7 @@ export default function IntegrationsSettingsPage() {
         body: JSON.stringify({ updates }),
       });
       setSettings(response);
+      setCapabilities(await fetchApi<IntegrationCapabilities[]>("/capabilities"));
       alert(`${integrationName} settings saved successfully!`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "unknown error";
@@ -63,6 +80,73 @@ export default function IntegrationsSettingsPage() {
 
   return (
     <div className="space-y-8">
+      <section className="rounded-lg border border-slate-800 bg-slate-900">
+        <div className="border-b border-slate-800 p-6">
+          <h2 className="text-xl font-semibold text-slate-100">What Foxhole Can See</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Configured integrations, read-only capabilities, and confirmation-gated actions.
+          </p>
+        </div>
+        <div className="divide-y divide-slate-800">
+          {capabilities.map((item) => (
+            <div key={item.integration} className="p-6">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <h3 className="font-semibold text-slate-100">{item.integration}</h3>
+                  <div className="mt-1 text-sm text-slate-400">
+                    {item.configured
+                      ? "Configured"
+                      : item.enabled
+                        ? `Missing ${item.missing_configuration.join(", ") || "configuration"}`
+                        : "Disabled"}
+                  </div>
+                </div>
+                <span
+                  className={`w-fit rounded px-2.5 py-1 text-xs font-medium ${
+                    item.configured
+                      ? "bg-green-950 text-green-300"
+                      : item.enabled
+                        ? "bg-yellow-950 text-yellow-300"
+                        : "bg-slate-800 text-slate-400"
+                  }`}
+                >
+                  {item.configured ? "Configured" : item.enabled ? "Incomplete" : "Disabled"}
+                </span>
+              </div>
+              {item.capabilities.length > 0 ? (
+                <div className="mt-4 grid gap-3">
+                  {item.capabilities.map((capability) => (
+                    <div
+                      key={capability.tool_name}
+                      className="rounded border border-slate-800 bg-slate-950 p-4"
+                    >
+                      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                        <div>
+                          <div className="font-medium text-slate-200">{capability.tool_name}</div>
+                          <div className="mt-1 text-sm text-slate-400">
+                            {capability.description}
+                          </div>
+                        </div>
+                        <span className="w-fit rounded bg-slate-800 px-2 py-1 text-xs text-slate-300">
+                          {capability.safety}
+                        </span>
+                      </div>
+                      <div className="mt-3 text-xs text-slate-500">
+                        {capability.stage_behavior}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 text-sm text-slate-500">
+                  No active capabilities for this integration.
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
       <SettingsForm 
         title="Docker (Local API)" 
         description="Enable the agent to manage local Docker containers."

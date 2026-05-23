@@ -1,7 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 
+from agent.settings import AppSettings
 from agent.tools.base import ToolResult, ToolSafety
-from agent.tools.registry import ToolRegistry
+from agent.tools.registry import (
+    ToolRegistry,
+    integration_capabilities,
+    register_builtin_tools,
+)
 
 
 class EchoArgs(BaseModel):
@@ -51,3 +56,28 @@ def test_tool_result_has_stable_envelope() -> None:
     assert result.model_dump()["data"] is None
     assert result.model_dump()["error"] == "failed"
     assert result.model_dump()["write_action"]["requested"] is False
+
+
+def test_integration_capabilities_follow_configuration_without_secrets() -> None:
+    settings = AppSettings(
+        docker_enabled=True,
+        docker_socket_proxy_url="tcp://docker-socket-proxy:2375",
+        sonarr_enabled=True,
+        sonarr_base_url="http://sonarr.local:8989",
+        sonarr_api_key=SecretStr("secret-key"),
+    )
+    registry = ToolRegistry()
+    register_builtin_tools(registry, settings=settings)
+
+    capabilities = integration_capabilities(settings, registry)
+    by_name = {item.integration: item for item in capabilities}
+
+    assert by_name["docker"].configured is True
+    assert any(
+        capability.tool_name == "docker_list_containers"
+        for capability in by_name["docker"].capabilities
+    )
+    assert by_name["plex"].enabled is False
+    assert by_name["plex"].capabilities == []
+    assert by_name["sonarr"].missing_configuration == []
+    assert "secret-key" not in str([item.model_dump() for item in capabilities])

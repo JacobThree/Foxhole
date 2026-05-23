@@ -81,7 +81,59 @@ export interface ReadyResponse {
   settings: {
     api_auth_configured: boolean;
     integrations: Record<string, boolean>;
+    integration_details?: Record<string, IntegrationState>;
   };
+}
+
+export interface ApiEvent {
+  id: string;
+  timestamp: string;
+  type: string;
+  severity: string;
+  source: string;
+  payload_summary: string;
+  correlation_id: string | null;
+  data: Record<string, unknown>;
+}
+
+export interface IntegrationState {
+  name?: string;
+  enabled: boolean;
+  configured: boolean;
+  missing_configuration: string[];
+}
+
+export interface CheckSummary {
+  id: string;
+  timestamp: string;
+  source: string;
+  status: string;
+  severity: string;
+  summary: string;
+  correlation_id: string | null;
+}
+
+export interface DashboardSummary {
+  readiness: Record<string, boolean>;
+  integrations: Array<IntegrationState & { name: string }>;
+  severity_counts: Record<string, number>;
+  latest_checks: CheckSummary[];
+  recent_events: ApiEvent[];
+}
+
+export interface ToolCapability {
+  tool_name: string;
+  description: string;
+  safety: string;
+  stage_behavior: string;
+}
+
+export interface IntegrationCapabilities {
+  integration: string;
+  enabled: boolean;
+  configured: boolean;
+  missing_configuration: string[];
+  capabilities: ToolCapability[];
 }
 
 export function loginWithBearerToken(bearerToken: string) {

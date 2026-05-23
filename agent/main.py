@@ -15,6 +15,7 @@ from agent.auth import (
 from agent.orchestrator import AgentOrchestrator, create_orchestrator
 from agent.settings import AppSettings, get_settings
 from schemas.python.chat import ChatRequest, ChatResponse
+from schemas.python.events import DashboardSummary, IntegrationCapabilities, IntegrationState
 
 
 class HealthResponse(BaseModel):
@@ -161,3 +162,46 @@ async def list_events(
 
     events = await get_recent_events(limit=limit)
     return [e.model_dump() for e in events]
+
+
+@app.get("/dashboard/summary", response_model=DashboardSummary)
+async def dashboard_summary(
+    _: Annotated[None, Depends(require_bearer_token)],
+    redis_ready: Annotated[bool, Depends(check_redis_ready)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
+    limit: int = 50,
+) -> DashboardSummary:
+    from agent.events import get_recent_events, latest_check_summaries, severity_counts
+
+    event_limit = min(max(limit, 1), 200)
+    events = await get_recent_events(limit=event_limit)
+    integration_details = settings.integration_details()
+    return DashboardSummary(
+        readiness={
+            "settings": settings.api_auth_configured,
+            "redis": redis_ready,
+        },
+        integrations=[
+            IntegrationState(name=name, **detail)
+            for name, detail in integration_details.items()
+        ],
+        severity_counts=severity_counts(events),
+        latest_checks=latest_check_summaries(events),
+        recent_events=[
+            event
+            for event in events
+            if event.severity.lower() in {"critical", "error", "high", "warning", "warn"}
+        ][:5],
+    )
+
+
+@app.get("/capabilities", response_model=list[IntegrationCapabilities])
+async def list_capabilities(
+    _: Annotated[None, Depends(require_bearer_token)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
+) -> list[IntegrationCapabilities]:
+    from agent.tools.registry import ToolRegistry, integration_capabilities, register_builtin_tools
+
+    registry = ToolRegistry()
+    register_builtin_tools(registry, settings=settings)
+    return integration_capabilities(settings, registry)

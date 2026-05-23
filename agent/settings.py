@@ -298,6 +298,108 @@ class AppSettings(BaseSettings):
             "unbound": self.unbound.configured,
         }
 
+    def integration_details(self) -> dict[str, dict[str, Any]]:
+        return {
+            "docker": self._integration_detail(
+                self.docker_enabled,
+                self.docker.configured,
+                {"docker_socket_proxy_url": self.docker_socket_proxy_url is not None},
+            ),
+            "proxmox": self._integration_detail(
+                self.proxmox_enabled,
+                self.proxmox.configured,
+                {
+                    "proxmox_host": self.proxmox_host is not None,
+                    "proxmox_token_id": self.proxmox_token_id is not None,
+                    "proxmox_token_secret": self.proxmox_token_secret is not None,
+                },
+            ),
+            "telegram": self._integration_detail(
+                self.telegram_enabled,
+                self.telegram.configured,
+                {
+                    "telegram_bot_token": self.telegram_bot_token is not None,
+                    "telegram_chat_id": self.telegram_chat_id is not None,
+                },
+            ),
+            "plex": self._integration_detail(
+                self.plex_enabled,
+                self.plex.configured,
+                {
+                    "plex_base_url": self.plex_base_url is not None,
+                    "plex_token": self.plex_token is not None,
+                },
+            ),
+            "sonarr": self._integration_detail(
+                self.sonarr_enabled,
+                self.sonarr.configured,
+                {
+                    "sonarr_base_url": self.sonarr_base_url is not None,
+                    "sonarr_api_key": self.sonarr_api_key is not None,
+                },
+            ),
+            "radarr": self._integration_detail(
+                self.radarr_enabled,
+                self.radarr.configured,
+                {
+                    "radarr_base_url": self.radarr_base_url is not None,
+                    "radarr_api_key": self.radarr_api_key is not None,
+                },
+            ),
+            "tautulli": self._integration_detail(
+                self.tautulli_enabled,
+                self.tautulli.configured,
+                {
+                    "tautulli_base_url": self.tautulli_base_url is not None,
+                    "tautulli_api_key": self.tautulli_api_key is not None,
+                },
+            ),
+            "overseerr": self._integration_detail(
+                self.overseerr_enabled,
+                self.overseerr.configured,
+                {
+                    "overseerr_base_url": self.overseerr_base_url is not None,
+                    "overseerr_api_key": self.overseerr_api_key is not None,
+                },
+            ),
+            "portainer": self._integration_detail(
+                self.portainer_enabled,
+                self.portainer_configured,
+                {
+                    "portainer_base_url": self.portainer_base_url is not None,
+                    "portainer_credentials": self.portainer_api_token is not None
+                    or (
+                        self.portainer_username is not None
+                        and self.portainer_password is not None
+                    ),
+                },
+            ),
+            "pihole": self._integration_detail(
+                self.pihole_enabled,
+                self.pihole.configured,
+                {
+                    "pihole_base_url": self.pihole_base_url is not None,
+                    "pihole_api_token": self.pihole_api_token is not None,
+                },
+            ),
+            "unbound": self._integration_detail(
+                self.unbound_enabled,
+                self.unbound.configured,
+                {"unbound_host": self.unbound_host is not None},
+            ),
+        }
+
+    def _integration_detail(
+        self, enabled: bool, configured: bool, required: dict[str, bool]
+    ) -> dict[str, Any]:
+        return {
+            "enabled": enabled,
+            "configured": configured,
+            "missing_configuration": [
+                name for name, present in required.items() if enabled and not present
+            ],
+        }
+
     def redacted_summary(self) -> dict[str, Any]:
         return {
             "environment": self.environment,
@@ -310,6 +412,7 @@ class AppSettings(BaseSettings):
                 "primary_api_key_configured": self.llm_primary_api_key is not None,
             },
             "integrations": self.integration_status(),
+            "integration_details": self.integration_details(),
         }
 
 

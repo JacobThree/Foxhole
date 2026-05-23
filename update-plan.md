@@ -177,14 +177,14 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Alerts page fetches recent events from `/events`.
-- [ ] Empty, loading, error, and unauthenticated states are handled.
-- [ ] Existing client-side acknowledgement remains clearly local-only or is removed until a backend acknowledgement endpoint exists.
+- [x] Alerts page fetches recent events from `/events`.
+- [x] Empty, loading, error, and unauthenticated states are handled.
+- [x] Existing client-side acknowledgement remains clearly local-only or is removed until a backend acknowledgement endpoint exists.
 
 **Verification:**
 
-- [ ] UI build passes: `pnpm build` from `ui/`.
-- [ ] Backend event tests pass: `pytest tests/agent/test_events.py tests/agent/test_main.py`
+- [x] UI build passes: `pnpm build` from `ui/`.
+- [x] Backend event tests pass: `pytest tests/agent/test_events.py tests/agent/test_main.py`
 - [ ] Manual check: inserting a Redis event makes it appear in the UI.
 
 **Dependencies:** Task 2
@@ -206,13 +206,13 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] `GET /dashboard/summary` is bearer-authenticated.
-- [ ] Response includes readiness, integrations, severity counts, and recent check summaries.
-- [ ] Endpoint does not call external homelab services directly; it reads current settings and stored events/check results.
+- [x] `GET /dashboard/summary` is bearer-authenticated.
+- [x] Response includes readiness, integrations, severity counts, and recent check summaries.
+- [x] Endpoint does not call external homelab services directly; it reads current settings and stored events/check results.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/test_main.py tests/agent/test_events.py`
+- [x] Tests pass: `pytest tests/agent/test_main.py tests/agent/test_events.py`
 - [ ] Manual check: response remains fast with no integrations configured.
 
 **Dependencies:** Task 1, Task 4
@@ -234,13 +234,13 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Dashboard no longer hardcodes Docker, Proxmox, or network service rows.
-- [ ] Enabled and disabled integrations are visually distinguishable.
-- [ ] Recent critical/warning events are visible without opening the alerts page.
+- [x] Dashboard no longer hardcodes Docker, Proxmox, or network service rows.
+- [x] Enabled and disabled integrations are visually distinguishable.
+- [x] Recent critical/warning events are visible without opening the alerts page.
 
 **Verification:**
 
-- [ ] UI build passes: `pnpm build` from `ui/`.
+- [x] UI build passes: `pnpm build` from `ui/`.
 - [ ] Manual check: dashboard reflects changes after toggling integration settings.
 
 **Dependencies:** Task 2, Task 5
@@ -262,14 +262,14 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] UI shows each integration's configured status and available capabilities.
-- [ ] Write-capable tools clearly show Stage 1/2/3 behavior.
-- [ ] Secrets and raw config values are not displayed.
+- [x] UI shows each integration's configured status and available capabilities.
+- [x] Write-capable tools clearly show Stage 1/2/3 behavior.
+- [x] Secrets and raw config values are not displayed.
 
 **Verification:**
 
-- [ ] Backend registry tests pass: `pytest tests/agent/tools/test_registry.py`
-- [ ] UI build passes: `pnpm build` from `ui/`.
+- [x] Backend registry tests pass: `pytest tests/agent/tools/test_registry.py`
+- [x] UI build passes: `pnpm build` from `ui/`.
 - [ ] Manual check: disabling an integration removes its capabilities from the view.
 
 **Dependencies:** Task 5
@@ -288,9 +288,9 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 ### Checkpoint: Live Control Plane
 
-- [ ] Dashboard, chat, alerts, and integration settings are all backed by API data.
-- [ ] UI works against a configured bearer token.
-- [ ] Safety/capability state is visible to the user.
+- [x] Dashboard, chat, alerts, and integration settings are all backed by API data.
+- [x] UI works against a configured bearer token.
+- [x] Safety/capability state is visible to the user.
 
 ---
 

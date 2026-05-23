@@ -4,6 +4,7 @@ from pydantic import SecretStr
 from agent import __version__
 from agent.main import app, check_redis_ready
 from agent.settings import AppSettings, get_settings
+from schemas.python.events import Event
 
 
 def _settings() -> AppSettings:
@@ -92,3 +93,57 @@ def test_update_settings_persists_and_clears_cache(monkeypatch) -> None:
     assert calls[0]["FOXHOLE_PLEX_ENABLED"] == "true"
     assert calls[0]["FOXHOLE_PLEX_BASE_URL"] == "http://new-plex.local"
     assert calls[0]["FOXHOLE_PLEX_TOKEN"] is None
+
+
+def test_dashboard_summary_returns_read_only_control_plane_state(monkeypatch) -> None:
+    app.dependency_overrides[get_settings] = _settings
+    app.dependency_overrides[check_redis_ready] = _redis_ready
+    client = TestClient(app)
+
+    async def mock_recent_events(limit: int = 50):
+        return [
+            Event(
+                type="scheduled_check",
+                severity="warning",
+                source="sonarr",
+                payload_summary="Import queue is stale.",
+                data={"status": "warning"},
+            ),
+            Event(
+                type="alert",
+                severity="critical",
+                source="docker",
+                payload_summary="Container restart loop.",
+            ),
+        ]
+
+    monkeypatch.setattr("agent.events.get_recent_events", mock_recent_events)
+
+    response = client.get("/dashboard/summary", headers={"Authorization": "Bearer test-token"})
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    body = response.json()
+    assert body["readiness"] == {"settings": True, "redis": True}
+    assert body["severity_counts"] == {"info": 0, "warning": 1, "critical": 1}
+    assert body["latest_checks"][0]["source"] == "sonarr"
+    assert body["recent_events"][0]["payload_summary"] == "Import queue is stale."
+    assert any(
+        integration["name"] == "sonarr" and integration["configured"] is True
+        for integration in body["integrations"]
+    )
+
+
+def test_capabilities_endpoint_hides_raw_configuration() -> None:
+    app.dependency_overrides[get_settings] = _settings
+    client = TestClient(app)
+
+    response = client.get("/capabilities", headers={"Authorization": "Bearer test-token"})
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    body = response.json()
+    sonarr = next(item for item in body if item["integration"] == "sonarr")
+    assert sonarr["configured"] is True
+    assert any(capability["tool_name"] == "arr_queue" for capability in sonarr["capabilities"])
+    assert "sonarr-secret" not in response.text

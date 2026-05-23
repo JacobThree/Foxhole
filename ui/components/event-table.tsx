@@ -8,6 +8,7 @@ export interface EventItem {
   severity: EventSeverity;
   source: string;
   message: string;
+  correlationId?: string | null;
   acknowledged?: boolean;
 }
 
@@ -38,7 +39,7 @@ export function EventTable({ events, onAcknowledge }: EventTableProps) {
               <th className="px-4 py-3">Timestamp</th>
               <th className="px-4 py-3">Source</th>
               <th className="px-4 py-3">Message</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              {onAcknowledge && <th className="px-4 py-3 text-right">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
@@ -54,26 +55,31 @@ export function EventTable({ events, onAcknowledge }: EventTableProps) {
                   {event.source}
                 </td>
                 <td className="px-4 py-3 text-slate-300">
-                  {event.message}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {!event.acknowledged && onAcknowledge && (
-                    <button 
-                      onClick={() => onAcknowledge(event.id)}
-                      className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded transition-colors"
-                    >
-                      Acknowledge
-                    </button>
-                  )}
-                  {event.acknowledged && (
-                    <span className="text-xs text-slate-500">Acknowledged</span>
+                  <div>{event.message}</div>
+                  {event.correlationId && (
+                    <div className="mt-1 text-xs text-slate-500">{event.correlationId}</div>
                   )}
                 </td>
+                {onAcknowledge && (
+                  <td className="px-4 py-3 text-right">
+                    {!event.acknowledged && (
+                      <button 
+                        onClick={() => onAcknowledge(event.id)}
+                        className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded transition-colors"
+                      >
+                        Acknowledge
+                      </button>
+                    )}
+                    {event.acknowledged && (
+                      <span className="text-xs text-slate-500">Acknowledged</span>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
             {events.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={onAcknowledge ? 5 : 4} className="px-4 py-8 text-center text-slate-500">
                   No events found.
                 </td>
               </tr>

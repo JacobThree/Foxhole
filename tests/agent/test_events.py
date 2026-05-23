@@ -6,7 +6,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from agent.events import get_recent_events, store_event
+from agent.events import (
+    get_recent_events,
+    latest_check_summaries,
+    severity_counts,
+    store_event,
+)
 from schemas.python.events import Event
 
 
@@ -36,3 +41,18 @@ def test_get_recent_events(mock_redis: Any) -> None:
     assert events[0].payload_summary == "Test alert"
     mock_redis.xrevrange.assert_called_once_with(name="foxhole:events", max="+", min="-", count=10)
     mock_redis.aclose.assert_called_once()
+
+
+def test_event_summary_helpers_normalize_severity_and_checks() -> None:
+    events = [
+        Event(type="scheduled_check", source="docker", severity="high", payload_summary="Looping"),
+        Event(type="alert", source="plex", severity="warn", payload_summary="Buffering"),
+        Event(type="tool_call", source="chat", severity="info", payload_summary="Inspected"),
+    ]
+
+    assert severity_counts(events) == {"info": 1, "warning": 1, "critical": 1}
+
+    checks = latest_check_summaries(events)
+    assert len(checks) == 1
+    assert checks[0].source == "docker"
+    assert checks[0].severity == "critical"

@@ -26,3 +26,43 @@ class Event(BaseModel):
     data: dict[str, Any] = Field(default_factory=dict)
     findings: list[DiagnosticFinding] = Field(default_factory=list)
     budget: AgentBudgetMetadata | None = None
+
+
+class IntegrationState(BaseModel):
+    name: str
+    enabled: bool
+    configured: bool
+    missing_configuration: list[str] = Field(default_factory=list)
+
+
+class CheckSummary(BaseModel):
+    id: str
+    timestamp: str
+    source: str
+    status: str
+    severity: str
+    summary: str
+    correlation_id: str | None = None
+
+
+class DashboardSummary(BaseModel):
+    readiness: dict[str, bool]
+    integrations: list[IntegrationState]
+    severity_counts: dict[str, int]
+    latest_checks: list[CheckSummary] = Field(default_factory=list)
+    recent_events: list[Event] = Field(default_factory=list)
+
+
+class ToolCapability(BaseModel):
+    tool_name: str
+    description: str
+    safety: str
+    stage_behavior: str
+
+
+class IntegrationCapabilities(BaseModel):
+    integration: str
+    enabled: bool
+    configured: bool
+    missing_configuration: list[str] = Field(default_factory=list)
+    capabilities: list[ToolCapability] = Field(default_factory=list)
