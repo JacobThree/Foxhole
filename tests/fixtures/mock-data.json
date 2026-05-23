@@ -1,0 +1,38 @@
+{
+  "docker": {
+    "containers": [
+      {
+        "id": "1",
+        "name": "foxhole-api",
+        "status": "healthy",
+        "detail": "Uptime: 2 days"
+      },
+      {
+        "id": "2",
+        "name": "plex-media-server",
+        "status": "warning",
+        "detail": "High CPU usage"
+      }
+    ]
+  },
+  "proxmox": {
+    "nodes": [
+      {
+        "id": "1",
+        "name": "pve-01",
+        "status": "healthy",
+        "detail": "Storage: 60% used"
+      }
+    ]
+  },
+  "network": {
+    "status": [
+      {
+        "id": "1",
+        "name": "Pi-hole DNS",
+        "status": "healthy",
+        "detail": "21,000 domains blocked"
+      }
+    ]
+  }
+}

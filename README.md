@@ -48,6 +48,16 @@ Open `http://127.0.0.1:8000/healthz` for process health. Use `/readyz` to verify
 
 Phase 2 chat uses the configured LiteLLM alias `agent-primary` by default, with `agent-local` and `agent-vllm` documented as fallback targets. Tests use fake LLM clients, so the runtime can be developed without live model credentials.
 
+## Mock Mode (No-Homelab Demo)
+
+To run the UI and backend locally without connecting to real Proxmox, Docker, or Media servers, enable mock mode:
+
+```bash
+export FOXHOLE_MOCK_MODE=1
+uvicorn agent.main:app --reload
+```
+This mode intercepts tool calls and returns deterministic fake data from `tests/fixtures/mock-data.json`.
+
 ## Docker Compose
 
 Copy the Compose env template and start the deployment skeleton:
