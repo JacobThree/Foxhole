@@ -7,7 +7,7 @@ from typing import Any
 from redis.asyncio import Redis
 
 from agent.settings import get_settings
-from schemas.python.events import CheckSummary, Event
+from schemas.python.events import CheckSummary, Event, ScheduledCheckResult
 
 logger = logging.getLogger(__name__)
 STREAM_NAME = "foxhole:events"
@@ -34,6 +34,33 @@ async def store_event(event: Event) -> None:
         await redis.aclose()
     except Exception as e:
         logger.error(f"Failed to store event to Redis: {e}")
+
+
+def event_from_check_result(result: ScheduledCheckResult) -> Event:
+    return Event(
+        type="scheduled_check",
+        severity=normalize_severity(result.severity),
+        source=result.source,
+        payload_summary=result.summary,
+        correlation_id=result.correlation_id,
+        data={
+            "check": result.check,
+            "status": result.status.value,
+            "duration_ms": result.duration_ms,
+            "skipped_reason": result.skipped_reason,
+            "evidence": [item.model_dump(mode="json") for item in result.evidence],
+            "suggested_actions": [
+                action.model_dump(mode="json") for action in result.suggested_actions
+            ],
+        },
+        findings=result.findings,
+    )
+
+
+async def store_check_result(result: ScheduledCheckResult) -> Event:
+    event = event_from_check_result(result)
+    await store_event(event)
+    return event
 
 
 async def get_recent_events(limit: int = 50) -> list[Event]:

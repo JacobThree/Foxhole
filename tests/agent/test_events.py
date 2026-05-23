@@ -7,12 +7,15 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from agent.events import (
+    event_from_check_result,
     get_recent_events,
     latest_check_summaries,
     severity_counts,
+    store_check_result,
     store_event,
 )
-from schemas.python.events import Event
+from schemas.python.chat import EvidenceItem, SuggestedAction
+from schemas.python.events import CheckStatus, Event, ScheduledCheckResult
 
 
 @pytest.fixture
@@ -26,6 +29,44 @@ def mock_redis() -> Any:
 def test_store_event(mock_redis: Any) -> None:
     event = Event(type="alert", source="system", payload_summary="Test alert")
     asyncio.run(store_event(event))
+    mock_redis.xadd.assert_called_once()
+    mock_redis.aclose.assert_called_once()
+
+
+def test_check_result_converts_to_scheduled_check_event() -> None:
+    result = ScheduledCheckResult(
+        check="container_health",
+        source="docker",
+        status=CheckStatus.WARNING,
+        severity="warning",
+        summary="1 Docker issue found",
+        evidence=[EvidenceItem(source="docker", summary="Checked 2 containers")],
+        suggested_actions=[SuggestedAction(title="Review container", description="Inspect logs")],
+        duration_ms=12.5,
+        correlation_id="corr-1",
+    )
+
+    event = event_from_check_result(result)
+
+    assert event.type == "scheduled_check"
+    assert event.source == "docker"
+    assert event.correlation_id == "corr-1"
+    assert event.data["status"] == "warning"
+    assert event.data["evidence"][0]["summary"] == "Checked 2 containers"
+    assert event.data["suggested_actions"][0]["title"] == "Review container"
+
+
+def test_store_check_result_uses_event_stream(mock_redis: Any) -> None:
+    result = ScheduledCheckResult(
+        check="container_health",
+        source="docker",
+        status=CheckStatus.OK,
+        summary="Docker containers are healthy",
+    )
+
+    event = asyncio.run(store_check_result(result))
+
+    assert event.type == "scheduled_check"
     mock_redis.xadd.assert_called_once()
     mock_redis.aclose.assert_called_once()
 

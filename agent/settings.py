@@ -123,6 +123,7 @@ class AppSettings(BaseSettings):
     plex_enabled: bool = False
     plex_base_url: AnyHttpUrl | None = None
     plex_token: SecretStr | None = None
+    plex_log_path: str | None = None
 
     sonarr_enabled: bool = False
     sonarr_base_url: AnyHttpUrl | None = None

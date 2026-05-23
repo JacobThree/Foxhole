@@ -1,10 +1,16 @@
 import uuid
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-from schemas.python.chat import AgentBudgetMetadata, DiagnosticFinding
+from schemas.python.chat import (
+    AgentBudgetMetadata,
+    DiagnosticFinding,
+    EvidenceItem,
+    SuggestedAction,
+)
 
 
 def get_utc_now() -> str:
@@ -26,6 +32,28 @@ class Event(BaseModel):
     data: dict[str, Any] = Field(default_factory=dict)
     findings: list[DiagnosticFinding] = Field(default_factory=list)
     budget: AgentBudgetMetadata | None = None
+
+
+class CheckStatus(StrEnum):
+    OK = "ok"
+    WARNING = "warning"
+    CRITICAL = "critical"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+
+
+class ScheduledCheckResult(BaseModel):
+    check: str
+    source: str
+    status: CheckStatus
+    severity: str = "info"
+    summary: str
+    evidence: list[EvidenceItem] = Field(default_factory=list)
+    findings: list[DiagnosticFinding] = Field(default_factory=list)
+    suggested_actions: list[SuggestedAction] = Field(default_factory=list)
+    duration_ms: float = Field(default=0, ge=0)
+    skipped_reason: str | None = None
+    correlation_id: str = Field(default_factory=generate_id)
 
 
 class IntegrationState(BaseModel):

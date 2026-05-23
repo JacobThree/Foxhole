@@ -302,13 +302,13 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] All worker tasks return the shared envelope instead of placeholder `{status, check}` payloads.
-- [ ] Disabled integrations return `skipped` with a clear reason.
-- [ ] Check results are written to Redis events when appropriate.
+- [x] All worker tasks return the shared envelope instead of placeholder `{status, check}` payloads.
+- [x] Disabled integrations return `skipped` with a clear reason.
+- [x] Check results are written to Redis events when appropriate.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/workers/test_tasks.py tests/agent/test_events.py`
+- [x] Tests pass: `pytest tests/workers/test_tasks.py tests/agent/test_events.py`
 - [ ] Manual check: running one Celery task creates a readable event.
 
 **Dependencies:** Task 1
@@ -330,13 +330,13 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Container health check flags restart loops, unhealthy containers, privileged containers, host networking, and missing restart policies.
-- [ ] Storage check flags high usage, failed/stale backup jobs, and unavailable storage data.
-- [ ] Checks skip cleanly when Docker or Proxmox is disabled.
+- [x] Container health check flags restart loops, unhealthy containers, privileged containers, host networking, and missing restart policies.
+- [x] Storage check flags high usage, failed/stale backup jobs, and unavailable storage data.
+- [x] Checks skip cleanly when Docker or Proxmox is disabled.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/workers/test_tasks.py tests/tools/test_docker_tool.py tests/tools/test_backup_storage_health.py tests/tools/test_security_checks.py`
+- [x] Tests pass: `pytest tests/workers/test_tasks.py tests/tools/test_docker_tool.py tests/tools/test_backup_storage_health.py tests/tools/test_security_checks.py`
 - [ ] Manual check: mocked task output maps to warning/critical severities correctly.
 
 **Dependencies:** Task 8
@@ -359,13 +359,13 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Plex task reports DB lock warnings, transcode failures, and buffering risk from compact evidence.
-- [ ] *Arr task reports stale queue/import failures and proposed safe actions.
-- [ ] Checks do not request write actions; they only recommend confirmation-gated remediation.
+- [x] Plex task reports DB lock warnings, transcode failures, and buffering risk from compact evidence.
+- [x] *Arr task reports stale queue/import failures and proposed safe actions.
+- [x] Checks do not request write actions; they only recommend confirmation-gated remediation.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/workers/test_tasks.py tests/tools/test_plex_tool.py tests/tools/test_arr_tool.py tests/tools/test_arr_actions.py`
+- [x] Tests pass: `pytest tests/workers/test_tasks.py tests/tools/test_plex_tool.py tests/tools/test_arr_tool.py tests/tools/test_arr_actions.py`
 - [ ] Manual check: fixture data produces a concise diagnostic event.
 
 **Dependencies:** Task 8
@@ -387,13 +387,13 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Public ranges are still rejected.
-- [ ] Unknown MAC detections create warning events with vendor/address evidence when available.
-- [ ] DNS degradation uses Pi-hole/Unbound summaries without exposing raw query logs by default.
+- [x] Public ranges are still rejected.
+- [x] Unknown MAC detections create warning events with vendor/address evidence when available.
+- [x] DNS degradation uses Pi-hole/Unbound summaries without exposing raw query logs by default.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/workers/test_tasks.py tests/tools/test_network_tool.py tests/tools/test_network_scanning.py`
+- [x] Tests pass: `pytest tests/workers/test_tasks.py tests/tools/test_network_tool.py tests/tools/test_network_scanning.py`
 - [ ] Manual check: no scan runs when `network_allowed_subnets` is empty.
 
 **Dependencies:** Task 8
@@ -410,8 +410,8 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 ### Checkpoint: Diagnostics Are Alive
 
-- [ ] Celery scheduled tasks create useful events instead of placeholders.
-- [ ] No worker task performs a write.
+- [x] Celery scheduled tasks create useful events instead of placeholders.
+- [x] No worker task performs a write.
 - [ ] Dashboard and alerts reflect worker output.
 
 ---

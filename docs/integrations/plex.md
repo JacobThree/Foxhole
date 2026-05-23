@@ -12,6 +12,7 @@ Configure with:
 ```bash
 FOXHOLE_PLEX_BASE_URL=http://plex.local:32400
 FOXHOLE_PLEX_TOKEN=...
+FOXHOLE_PLEX_LOG_PATH="/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Logs/Plex Media Server.log"
 ```
 
 For native Plex installs on Proxmox LXC, the log file usually lives at:
