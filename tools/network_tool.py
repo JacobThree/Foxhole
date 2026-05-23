@@ -280,7 +280,7 @@ def _refuse_unsafe_subnet(subnet: str, settings: AppSettings) -> ToolResult | No
         network = ipaddress.ip_network(subnet, strict=False)
     except ValueError as exc:
         return ToolResult(success=False, error=f"Invalid subnet: {exc}")
-    if not any(network.subnet_of(block) for block in _RFC1918_BLOCKS):
+    if not any(network.subnet_of(block) for block in _RFC1918_BLOCKS):  # type: ignore[arg-type]
         return ToolResult(
             success=False,
             error=f"Refusing to scan {subnet}: only RFC1918 private ranges are allowed.",
@@ -291,7 +291,7 @@ def _refuse_unsafe_subnet(subnet: str, settings: AppSettings) -> ToolResult | No
             error="No allowed subnets configured. Set FOXHOLE_NETWORK_ALLOWED_SUBNETS first.",
         )
     allowed = [ipaddress.ip_network(value, strict=False) for value in settings.network_allowed_subnets]
-    if not any(network.subnet_of(block) for block in allowed):
+    if not any(network.subnet_of(block) for block in allowed):  # type: ignore[arg-type]
         return ToolResult(
             success=False,
             error=(

@@ -89,3 +89,13 @@ async def chat(
     orchestrator: Annotated[AgentOrchestrator, Depends(get_chat_orchestrator)],
 ) -> ChatResponse:
     return await orchestrator.chat(request)
+
+@app.get("/events", response_model=list[dict[str, Any]])
+async def list_events(
+    _: Annotated[None, Depends(require_bearer_token)],
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    from agent.events import get_recent_events
+    events = await get_recent_events(limit=limit)
+    return [e.model_dump() for e in events]
+
