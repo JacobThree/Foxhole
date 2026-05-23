@@ -1,5 +1,7 @@
+import pytest
 from pydantic import BaseModel, SecretStr
 
+from agent.db.repositories import AuditRepository
 from agent.safety import AuditLog, WritePolicy
 from agent.settings import AppSettings
 from agent.tools.base import ToolResult, ToolSafety
@@ -8,6 +10,13 @@ from agent.tools.registry import ToolRegistry
 
 class RestartArgs(BaseModel):
     container: str
+
+
+@pytest.fixture
+def isolated_database(tmp_path, monkeypatch: pytest.MonkeyPatch) -> str:
+    path = str(tmp_path / "foxhole.db")
+    monkeypatch.setenv("FOXHOLE_DATABASE_PATH", path)
+    return path
 
 
 def _restart_tool():
@@ -56,3 +65,23 @@ def test_stage_2_requires_confirmation_token() -> None:
     assert blocked.allowed is False
     assert blocked.write_action.confirmation_token == token
     assert allowed.allowed is True
+
+
+def test_write_policy_persists_durable_audit_receipts(isolated_database: str) -> None:
+    settings = AppSettings(
+        write_stage=1,
+        database_path=isolated_database,
+    )
+    policy = WritePolicy(settings)
+
+    decision = policy.evaluate(
+        tool=_restart_tool(),
+        caller="test",
+        arguments=RestartArgs(container="plex"),
+    )
+
+    receipts = AuditRepository(settings).recent()
+    assert decision.allowed is False
+    assert receipts[0].tool_name == "restart_container"
+    assert receipts[0].confirmation_status == "denied_stage_1"
+    assert receipts[0].arguments == {"container": "plex"}

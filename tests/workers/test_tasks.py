@@ -13,6 +13,7 @@ from workers.tasks import (
     check_container_health,
     check_plex_db_health,
     check_storage_thresholds,
+    retention_prune,
     scan_rogue_macs,
 )
 
@@ -43,6 +44,18 @@ def test_tasks_return_shared_check_envelope() -> None:
         assert isinstance(result["evidence"], list)
         assert result["duration_ms"] >= 0
         assert result["correlation_id"]
+
+
+def test_retention_prune_task_uses_configured_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    settings = AppSettings(event_retention_days=7)
+    monkeypatch.setattr(tasks, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        tasks,
+        "prune_durable_history",
+        lambda task_settings: {"events": task_settings.event_retention_days},
+    )
+
+    assert retention_prune.run() == {"events": 7}
 
 
 def test_container_health_flags_restart_and_security_findings(

@@ -94,3 +94,44 @@ class IntegrationCapabilities(BaseModel):
     configured: bool
     missing_configuration: list[str] = Field(default_factory=list)
     capabilities: list[ToolCapability] = Field(default_factory=list)
+
+
+class AuditReceipt(BaseModel):
+    id: str
+    timestamp: str
+    tool_name: str
+    caller: str
+    arguments: dict[str, Any]
+    safety: str
+    confirmation_status: str
+    result: str
+    result_data: dict[str, Any] | list[Any] | str | int | float | bool | None = None
+
+
+class IncidentSummary(BaseModel):
+    id: str
+    created_at: str
+    updated_at: str
+    source: str
+    title: str
+    severity: str
+    status: str
+    correlation_id: str | None = None
+    pinned: bool = False
+    event_count: int = 0
+
+
+class IncidentTimelineEntry(BaseModel):
+    timestamp: str
+    source: str
+    severity: str
+    summary: str
+    event_id: str | None = None
+    audit_id: str | None = None
+    evidence_summary: str | None = None
+    suggested_action: str | None = None
+
+
+class IncidentDetail(BaseModel):
+    incident: IncidentSummary
+    timeline: list[IncidentTimelineEntry] = Field(default_factory=list)

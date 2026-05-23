@@ -7,6 +7,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
+from agent.db.repositories import prune_durable_history
 from agent.events import store_check_result
 from agent.settings import AppSettings, get_settings
 from schemas.python.arr import ArrHealthArgs, ArrImportDiagnosisArgs, ArrQueueArgs, ArrService
@@ -64,6 +65,12 @@ def check_plex_db_health() -> dict[str, Any]:
 def scan_rogue_macs() -> dict[str, Any]:
     logger.info("Scanning for rogue MACs")
     return _run_check("rogue_macs", "network", _scan_rogue_macs).model_dump(mode="json")
+
+
+@celery_app.task(name="foxhole.retention_prune")  # type: ignore[untyped-decorator]
+def retention_prune() -> dict[str, int]:
+    logger.info("Pruning durable history by configured retention policy")
+    return prune_durable_history(get_settings())
 
 
 def _run_check(

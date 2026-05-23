@@ -94,6 +94,12 @@ class AppSettings(BaseSettings):
         default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
     )
     redis_url: str = "redis://localhost:6379/0"
+    database_path: str = "/tmp/foxhole/foxhole.db"
+    event_retention_days: int = Field(default=30, ge=1)
+    diagnostic_retention_days: int = Field(default=90, ge=1)
+    audit_retention_days: int = Field(default=365, ge=1)
+    resolved_incident_retention_days: int = Field(default=180, ge=1)
+    critical_incident_retention_days: int = Field(default=365, ge=1)
 
     llm_primary_model: str = "agent-primary"
     llm_primary_api_key: SecretStr | None = None
@@ -406,6 +412,15 @@ class AppSettings(BaseSettings):
             "environment": self.environment,
             "api_auth_configured": self.api_auth_configured,
             "redis_url": redact_url(self.redis_url),
+            "database_path": self.database_path,
+            "retention_days": {
+                "events": self.event_retention_days,
+                "diagnostics": self.diagnostic_retention_days,
+                "audits": self.audit_retention_days,
+                "resolved_incidents": self.resolved_incident_retention_days,
+                "critical_incidents": self.critical_incident_retention_days,
+                "pinned_incidents": None,
+            },
             "llm": {
                 "primary_model": self.llm_primary_model,
                 "local_model": self.llm_local_model,

@@ -6,6 +6,7 @@ from typing import Any
 
 from redis.asyncio import Redis
 
+from agent.db.repositories import EventRepository
 from agent.settings import get_settings
 from schemas.python.events import CheckSummary, Event, ScheduledCheckResult
 
@@ -21,6 +22,11 @@ async def get_redis() -> Any:
 
 
 async def store_event(event: Event) -> None:
+    try:
+        EventRepository().store_event(event)
+    except Exception as e:
+        logger.error(f"Failed to store event to SQLite: {e}")
+
     try:
         redis = await get_redis()
         # Redact secrets from data if necessary (basic implementation)
@@ -59,25 +65,43 @@ def event_from_check_result(result: ScheduledCheckResult) -> Event:
 
 async def store_check_result(result: ScheduledCheckResult) -> Event:
     event = event_from_check_result(result)
+    try:
+        EventRepository().store_check_result(result)
+    except Exception as e:
+        logger.error(f"Failed to store check result to SQLite: {e}")
     await store_event(event)
     return event
 
 
 async def get_recent_events(limit: int = 50) -> list[Event]:
+    durable_events = EventRepository().recent_events(limit=limit)
     try:
         redis = await get_redis()
         # XREVRANGE to get newest first
         messages = await redis.xrevrange(name=STREAM_NAME, max="+", min="-", count=limit)
-        events = []
+        redis_events = []
         for _message_id, fields in messages:
             if "event" in fields:
                 event_data = json.loads(fields["event"])
-                events.append(Event(**event_data))
+                redis_events.append(Event(**event_data))
         await redis.aclose()
-        return events
+        return _merge_recent_events(redis_events, durable_events, limit)
     except Exception as e:
         logger.error(f"Failed to fetch events from Redis: {e}")
-        return []
+        return durable_events
+
+
+def _merge_recent_events(
+    redis_events: list[Event],
+    durable_events: list[Event],
+    limit: int,
+) -> list[Event]:
+    merged: dict[str, Event] = {}
+    for event in durable_events:
+        merged[event.id] = event
+    for event in redis_events:
+        merged[event.id] = event
+    return sorted(merged.values(), key=lambda event: event.timestamp, reverse=True)[:limit]
 
 
 def normalize_severity(severity: str | None) -> str:

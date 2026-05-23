@@ -8,13 +8,16 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from agent.db.repositories import AuditRepository
 from agent.settings import AppSettings
 from agent.tools.base import ToolSafety, WriteActionMetadata
 from agent.tools.registry import RegisteredTool
+from schemas.python.events import AuditReceipt, get_utc_now
 
 
 class AuditEvent(BaseModel):
     id: str
+    timestamp: str = Field(default_factory=get_utc_now)
     tool_name: str
     caller: str
     arguments: dict[str, Any]
@@ -52,9 +55,19 @@ class PolicyDecision(BaseModel):
 
 
 class WritePolicy:
-    def __init__(self, settings: AppSettings, audit_log: AuditLog | None = None) -> None:
+    def __init__(
+        self,
+        settings: AppSettings,
+        audit_log: AuditLog | None = None,
+        audit_repository: AuditRepository | None = None,
+    ) -> None:
         self._settings = settings
         self._audit_log = audit_log or AuditLog()
+        self._audit_repository = (
+            audit_repository if audit_repository is not None else AuditRepository(settings)
+        )
+        if audit_log is not None and audit_repository is None:
+            self._audit_repository = None
 
     @property
     def audit_log(self) -> AuditLog:
@@ -120,8 +133,14 @@ class WritePolicy:
         self._audit_log.update_result(
             audit_id,
             result="succeeded" if success else "failed",
-            result_data=result_data,
+            result_data=_redact_sensitive(result_data),
         )
+        if self._audit_repository is not None:
+            self._audit_repository.update_result(
+                audit_id,
+                result="succeeded" if success else "failed",
+                result_data=_redact_sensitive(result_data),
+            )
 
     def confirmation_token(self, tool_name: str, caller: str, arguments: dict[str, Any]) -> str:
         secret = (
@@ -143,13 +162,42 @@ class WritePolicy:
         result: str,
     ) -> None:
         self._audit_log.append(
-            AuditEvent(
+            event := AuditEvent(
                 id=audit_id,
                 tool_name=tool.name,
                 caller=caller,
-                arguments=arguments,
+                arguments=_redact_sensitive(arguments),
                 safety=tool.safety,
                 confirmation_status=confirmation_status,
                 result=result,
             )
         )
+        if self._audit_repository is not None:
+            self._audit_repository.create(
+                AuditReceipt(
+                    id=event.id,
+                    timestamp=event.timestamp,
+                    tool_name=event.tool_name,
+                    caller=event.caller,
+                    arguments=event.arguments,
+                    safety=event.safety.value,
+                    confirmation_status=event.confirmation_status,
+                    result=event.result,
+                    result_data=event.result_data,
+                )
+            )
+
+
+def _redact_sensitive(value: Any) -> Any:
+    if isinstance(value, dict):
+        redacted: dict[str, Any] = {}
+        for key, item in value.items():
+            normalized = str(key).lower()
+            if any(marker in normalized for marker in ("token", "secret", "password", "api_key")):
+                redacted[str(key)] = "********"
+            else:
+                redacted[str(key)] = _redact_sensitive(item)
+        return redacted
+    if isinstance(value, list):
+        return [_redact_sensitive(item) for item in value]
+    return value

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from agent.db.repositories import AuditRepository, prune_durable_history
 from agent.events import (
     event_from_check_result,
     get_recent_events,
@@ -14,8 +16,17 @@ from agent.events import (
     store_check_result,
     store_event,
 )
+from agent.settings import AppSettings, get_settings
 from schemas.python.chat import EvidenceItem, SuggestedAction
-from schemas.python.events import CheckStatus, Event, ScheduledCheckResult
+from schemas.python.events import AuditReceipt, CheckStatus, Event, ScheduledCheckResult
+
+
+@pytest.fixture
+def isolated_database(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("FOXHOLE_DATABASE_PATH", str(tmp_path / "foxhole.db"))
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture
@@ -26,7 +37,7 @@ def mock_redis() -> Any:
         yield mock_redis_instance
 
 
-def test_store_event(mock_redis: Any) -> None:
+def test_store_event(isolated_database: None, mock_redis: Any) -> None:
     event = Event(type="alert", source="system", payload_summary="Test alert")
     asyncio.run(store_event(event))
     mock_redis.xadd.assert_called_once()
@@ -56,7 +67,7 @@ def test_check_result_converts_to_scheduled_check_event() -> None:
     assert event.data["suggested_actions"][0]["title"] == "Review container"
 
 
-def test_store_check_result_uses_event_stream(mock_redis: Any) -> None:
+def test_store_check_result_uses_event_stream(isolated_database: None, mock_redis: Any) -> None:
     result = ScheduledCheckResult(
         check="container_health",
         source="docker",
@@ -71,7 +82,7 @@ def test_store_check_result_uses_event_stream(mock_redis: Any) -> None:
     mock_redis.aclose.assert_called_once()
 
 
-def test_get_recent_events(mock_redis: Any) -> None:
+def test_get_recent_events(isolated_database: None, mock_redis: Any) -> None:
     import json
 
     event = Event(type="alert", source="system", payload_summary="Test alert")
@@ -82,6 +93,72 @@ def test_get_recent_events(mock_redis: Any) -> None:
     assert events[0].payload_summary == "Test alert"
     mock_redis.xrevrange.assert_called_once_with(name="foxhole:events", max="+", min="-", count=10)
     mock_redis.aclose.assert_called_once()
+
+
+def test_recent_events_fall_back_to_durable_storage(
+    isolated_database: None,
+    mock_redis: Any,
+) -> None:
+    event = Event(type="alert", source="system", payload_summary="Survives restart")
+    asyncio.run(store_event(event))
+    mock_redis.xrevrange.side_effect = RuntimeError("redis unavailable")
+
+    events = asyncio.run(get_recent_events(limit=10))
+
+    assert len(events) == 1
+    assert events[0].id == event.id
+    assert events[0].payload_summary == "Survives restart"
+
+
+def test_retention_pruning_removes_only_expired_durable_history(
+    isolated_database: None,
+    mock_redis: Any,
+) -> None:
+    settings = AppSettings(database_path=get_settings().database_path, event_retention_days=30)
+    old_timestamp = (datetime.now(UTC) - timedelta(days=40)).isoformat()
+    new_timestamp = datetime.now(UTC).isoformat()
+    asyncio.run(
+        store_event(
+            Event(
+                id="old-event",
+                timestamp=old_timestamp,
+                type="alert",
+                source="system",
+                payload_summary="old",
+            )
+        )
+    )
+    asyncio.run(
+        store_event(
+            Event(
+                id="new-event",
+                timestamp=new_timestamp,
+                type="alert",
+                source="system",
+                payload_summary="new",
+            )
+        )
+    )
+    AuditRepository(settings).create(
+        AuditReceipt(
+            id="old-audit",
+            timestamp=old_timestamp,
+            tool_name="restart_container",
+            caller="test",
+            arguments={},
+            safety="requires_confirmation",
+            confirmation_status="denied_stage_1",
+            result="denied",
+        )
+    )
+
+    deleted = prune_durable_history(settings)
+    mock_redis.xrevrange.side_effect = RuntimeError("redis unavailable")
+    events = asyncio.run(get_recent_events(limit=10))
+
+    assert deleted["events"] == 1
+    assert deleted["audits"] == 0
+    assert [event.id for event in events] == ["new-event"]
 
 
 def test_event_summary_helpers_normalize_severity_and_checks() -> None:

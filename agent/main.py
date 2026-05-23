@@ -15,7 +15,14 @@ from agent.auth import (
 from agent.orchestrator import AgentOrchestrator, create_orchestrator
 from agent.settings import AppSettings, get_settings
 from schemas.python.chat import ChatRequest, ChatResponse
-from schemas.python.events import DashboardSummary, IntegrationCapabilities, IntegrationState
+from schemas.python.events import (
+    AuditReceipt,
+    DashboardSummary,
+    IncidentDetail,
+    IncidentSummary,
+    IntegrationCapabilities,
+    IntegrationState,
+)
 
 
 class HealthResponse(BaseModel):
@@ -205,3 +212,39 @@ async def list_capabilities(
     registry = ToolRegistry()
     register_builtin_tools(registry, settings=settings)
     return integration_capabilities(settings, registry)
+
+
+@app.get("/audits", response_model=list[AuditReceipt])
+async def list_audits(
+    _: Annotated[None, Depends(require_bearer_token)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
+    limit: int = 50,
+) -> list[AuditReceipt]:
+    from agent.db.repositories import AuditRepository
+
+    return AuditRepository(settings).recent(limit=limit)
+
+
+@app.get("/incidents", response_model=list[IncidentSummary])
+async def list_incidents(
+    _: Annotated[None, Depends(require_bearer_token)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
+    limit: int = 50,
+) -> list[IncidentSummary]:
+    from agent.db.repositories import IncidentRepository
+
+    return IncidentRepository(settings).list_generated(limit=limit)
+
+
+@app.get("/incidents/{incident_id}", response_model=IncidentDetail)
+async def get_incident(
+    incident_id: str,
+    _: Annotated[None, Depends(require_bearer_token)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
+) -> IncidentDetail:
+    from agent.db.repositories import IncidentRepository
+
+    incident = IncidentRepository(settings).detail(incident_id)
+    if incident is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
+    return incident

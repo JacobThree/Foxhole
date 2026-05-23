@@ -96,6 +96,35 @@ export interface ApiEvent {
   data: Record<string, unknown>;
 }
 
+export interface IncidentSummary {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  source: string;
+  title: string;
+  severity: string;
+  status: string;
+  correlation_id: string | null;
+  pinned: boolean;
+  event_count: number;
+}
+
+export interface IncidentTimelineEntry {
+  timestamp: string;
+  source: string;
+  severity: string;
+  summary: string;
+  event_id: string | null;
+  audit_id: string | null;
+  evidence_summary: string | null;
+  suggested_action: string | null;
+}
+
+export interface IncidentDetail {
+  incident: IncidentSummary;
+  timeline: IncidentTimelineEntry[];
+}
+
 export interface IntegrationState {
   name?: string;
   enabled: boolean;

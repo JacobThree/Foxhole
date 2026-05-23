@@ -2,9 +2,10 @@ from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
 from agent import __version__
+from agent.db.repositories import AuditRepository, EventRepository
 from agent.main import app, check_redis_ready
 from agent.settings import AppSettings, get_settings
-from schemas.python.events import Event
+from schemas.python.events import AuditReceipt, Event
 
 
 def _settings() -> AppSettings:
@@ -147,3 +148,75 @@ def test_capabilities_endpoint_hides_raw_configuration() -> None:
     assert sonarr["configured"] is True
     assert any(capability["tool_name"] == "arr_queue" for capability in sonarr["capabilities"])
     assert "sonarr-secret" not in response.text
+
+
+def test_audits_endpoint_returns_redacted_safety_receipts(tmp_path) -> None:
+    settings = _settings().model_copy(update={"database_path": str(tmp_path / "foxhole.db")})
+    AuditRepository(settings).create(
+        AuditReceipt(
+            id="audit-1",
+            timestamp="2026-05-22T00:00:00+00:00",
+            tool_name="restart_container",
+            caller="api",
+            arguments={"container": "plex", "api_key": "********"},
+            safety="requires_confirmation",
+            confirmation_status="denied_stage_1",
+            result="denied",
+        )
+    )
+    app.dependency_overrides[get_settings] = lambda: settings
+    client = TestClient(app)
+
+    response = client.get("/audits", headers={"Authorization": "Bearer test-token"})
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    body = response.json()
+    assert body[0]["id"] == "audit-1"
+    assert body[0]["arguments"]["api_key"] == "********"
+
+
+def test_incidents_endpoint_groups_warning_events_and_returns_timeline(tmp_path) -> None:
+    settings = _settings().model_copy(update={"database_path": str(tmp_path / "foxhole.db")})
+    repository = EventRepository(settings)
+    repository.store_event(
+        Event(
+            id="event-1",
+            timestamp="2026-05-22T00:00:00+00:00",
+            type="scheduled_check",
+            severity="warning",
+            source="plex",
+            payload_summary="Plex buffering risk is elevated.",
+            correlation_id="plex-corr",
+        )
+    )
+    repository.store_event(
+        Event(
+            id="event-2",
+            timestamp="2026-05-22T00:05:00+00:00",
+            type="scheduled_check",
+            severity="critical",
+            source="plex",
+            payload_summary="Plex transcode failures detected.",
+            correlation_id="plex-corr",
+        )
+    )
+    app.dependency_overrides[get_settings] = lambda: settings
+    client = TestClient(app)
+
+    list_response = client.get("/incidents", headers={"Authorization": "Bearer test-token"})
+    incident_id = list_response.json()[0]["id"]
+    detail_response = client.get(
+        f"/incidents/{incident_id}",
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    app.dependency_overrides.clear()
+    assert list_response.status_code == 200
+    assert list_response.json()[0]["event_count"] == 2
+    assert list_response.json()[0]["severity"] == "critical"
+    assert detail_response.status_code == 200
+    assert [entry["event_id"] for entry in detail_response.json()["timeline"]] == [
+        "event-1",
+        "event-2",
+    ]

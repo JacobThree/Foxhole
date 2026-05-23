@@ -1,4 +1,5 @@
 import { AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import Link from 'next/link';
 
 export type EventSeverity = 'info' | 'warning' | 'critical';
 
@@ -9,6 +10,7 @@ export interface EventItem {
   source: string;
   message: string;
   correlationId?: string | null;
+  incidentId?: string | null;
   acknowledged?: boolean;
 }
 
@@ -58,6 +60,14 @@ export function EventTable({ events, onAcknowledge }: EventTableProps) {
                   <div>{event.message}</div>
                   {event.correlationId && (
                     <div className="mt-1 text-xs text-slate-500">{event.correlationId}</div>
+                  )}
+                  {event.incidentId && (
+                    <Link
+                      href={`/incidents/${encodeURIComponent(event.incidentId)}`}
+                      className="mt-2 inline-flex text-xs font-medium text-cyan-300 hover:text-cyan-200"
+                    >
+                      Incident timeline
+                    </Link>
                   )}
                 </td>
                 {onAcknowledge && (

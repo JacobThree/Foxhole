@@ -24,6 +24,7 @@ dependencies = [
   "pydantic-settings>=2.6,<3",
   "python-telegram-bot>=21,<23",
   "redis>=5,<7",
+  "sqlmodel>=0.0.22,<1",
   "uvicorn[standard]>=0.34,<1",
 ]
 

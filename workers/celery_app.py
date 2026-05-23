@@ -42,5 +42,9 @@ celery_app.conf.update(
             "task": "tasks.scan_rogue_macs",
             "schedule": crontab(minute="*/15"),
         },
+        "retention-prune": {
+            "task": "foxhole.retention_prune",
+            "schedule": crontab(minute="0", hour="3"),
+        },
     },
 )

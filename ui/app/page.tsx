@@ -67,13 +67,16 @@ function formatTimestamp(value: string) {
 }
 
 function toEventItem(event: ApiEvent): EventItem {
+  const severity = normalizeSeverity(event.severity);
   return {
     id: event.id,
     timestamp: formatTimestamp(event.timestamp),
-    severity: normalizeSeverity(event.severity),
+    severity,
     source: event.source,
     message: event.payload_summary,
     correlationId: event.correlation_id,
+    incidentId:
+      severity === "info" ? null : `generated:${event.source}:${event.correlation_id || event.type}`,
   };
 }
 
