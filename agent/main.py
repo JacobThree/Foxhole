@@ -260,7 +260,8 @@ def _widget_suggested_action(event: Any | None) -> str | None:
         for finding in event.findings:
             if finding.suggested_actions:
                 return str(finding.suggested_actions[0].description)
-    return str(event.payload_summary) if event.payload_summary else "Review the latest Foxhole event."
+    summary = event.payload_summary
+    return str(summary) if summary else "Review the latest Foxhole event."
 
 
 @app.get("/capabilities", response_model=list[IntegrationCapabilities])
