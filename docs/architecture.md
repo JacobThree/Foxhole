@@ -14,9 +14,16 @@ Foxhole is organized around a FastAPI backend, typed diagnostic tools, and backg
 
 The first usable milestone does not change homelab state. Tool implementations should collect status, logs, and metadata, then return structured results. Any future write action must declare itself as a write, require confirmation, and be audit logged.
 
-## Configuration
+## Configuration & Opt-In Modules
 
-Settings are loaded from environment variables and optional config files under `/etc/homelab-agent`. Optional integrations should degrade cleanly when credentials are absent. Redacted configuration summaries are safe to include in health, readiness, logs, and support output.
+Foxhole utilizes an **opt-in modular architecture**. All integrations (Plex, Docker, Proxmox, etc.) are disabled by default. 
+
+Settings are loaded via Pydantic from environment variables (`FOXHOLE_*` prefix) and optional config files under `/etc/homelab-agent`. To activate a module, you must explicitly set its enabled flag (e.g., `FOXHOLE_PLEX_ENABLED=true`). 
+
+If a module is not enabled, the backend dynamically excludes its capabilities from the LLM Tool Registry, preserving token context and ensuring the agent respects your privacy and environment boundaries.
+
+**Dashboard Integration:**
+Users can interactively toggle and configure these modules directly from the Next.js Dashboard. The UI submits payload data to the `PATCH /settings` REST endpoint, which securely writes to the local `.env` file and purges the internal caches to reload the tool registry live, requiring no restarts. Redacted configuration summaries are safe to include in health, readiness, logs, and support output.
 
 ## API Foundation
 

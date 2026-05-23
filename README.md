@@ -32,4 +32,6 @@ Foxhole can be deployed via:
 - Proxmox LXC 
 - Debian/Ubuntu Systemd service
 
-Copy `.env.example` to `.env` and fill in your details to start using Foxhole in read-only mode.
+Copy `.env.example` to `.env` and configure your LLM details. 
+
+Once Foxhole is running, open the **Next.js Dashboard** in your browser. Navigate to the **Settings > Integrations** tab to seamlessly toggle and configure plugins like Plex, Docker, or Proxmox via the UI without manually editing files!
