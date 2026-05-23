@@ -6,6 +6,7 @@ from agent.settings import AppSettings, get_settings, redact_url
 def test_valid_core_and_optional_integration_config(monkeypatch) -> None:
     monkeypatch.setenv("FOXHOLE_API_BEARER_TOKEN", "dev-token")
     monkeypatch.setenv("FOXHOLE_REDIS_URL", "redis://:secret@redis.local:6379/0")
+    monkeypatch.setenv("FOXHOLE_PLEX_ENABLED", "true")
     monkeypatch.setenv("FOXHOLE_PLEX_BASE_URL", "http://plex.local:32400")
     monkeypatch.setenv("FOXHOLE_PLEX_TOKEN", "plex-secret")
     get_settings.cache_clear()

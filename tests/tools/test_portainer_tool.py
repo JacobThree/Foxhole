@@ -10,7 +10,7 @@ from tools import portainer_tool
 
 def test_api_token_auth_takes_precedence() -> None:
     settings = AppSettings(
-        portainer_base_url="http://portainer.local",
+        portainer_enabled=True, portainer_base_url="http://portainer.local",
         portainer_api_token=SecretStr("token"),
         portainer_username="user",
         portainer_password=SecretStr("password"),
@@ -38,7 +38,7 @@ def test_list_endpoints_uses_portainer_api(monkeypatch) -> None:
         portainer_tool,
         "get_settings",
         lambda: AppSettings(
-            portainer_base_url="http://portainer.local",
+            portainer_enabled=True, portainer_base_url="http://portainer.local",
             portainer_api_token=SecretStr("token"),
         ),
     )
@@ -60,7 +60,7 @@ def test_403_is_reported_as_denied(monkeypatch) -> None:
         portainer_tool,
         "get_settings",
         lambda: AppSettings(
-            portainer_base_url="http://portainer.local",
+            portainer_enabled=True, portainer_base_url="http://portainer.local",
             portainer_api_token=SecretStr("token"),
         ),
     )

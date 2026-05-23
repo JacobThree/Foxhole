@@ -16,9 +16,9 @@ from tools import observability_tool
 
 def _settings() -> AppSettings:
     return AppSettings(
-        tautulli_base_url="http://tautulli.local",
+        tautulli_enabled=True, tautulli_base_url="http://tautulli.local",
         tautulli_api_key=SecretStr("taut-key"),
-        overseerr_base_url="http://overseerr.local",
+        overseerr_enabled=True, overseerr_base_url="http://overseerr.local",
         overseerr_api_key=SecretStr("over-key"),
     )
 

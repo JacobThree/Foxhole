@@ -8,9 +8,9 @@ from agent.settings import AppSettings, get_settings
 
 def _settings() -> AppSettings:
     return AppSettings(
-        api_bearer_token=SecretStr("test-token"),
+        api_bearer_token=SecretStr("test-token"), docker_enabled=True, telegram_enabled=True,
         redis_url="redis://:redis-secret@redis.local:6379/0",
-        sonarr_base_url="http://sonarr.local:8989",
+        sonarr_enabled=True, sonarr_base_url="http://sonarr.local:8989",
         sonarr_api_key=SecretStr("sonarr-secret"),
     )
 

@@ -18,9 +18,9 @@ from tools import arr_tool
 
 def _settings() -> AppSettings:
     return AppSettings(
-        sonarr_base_url="http://sonarr.local",
+        sonarr_enabled=True, sonarr_base_url="http://sonarr.local",
         sonarr_api_key=SecretStr("sonarr-key"),
-        radarr_base_url="http://radarr.local",
+        radarr_enabled=True, radarr_base_url="http://radarr.local",
         radarr_api_key=SecretStr("radarr-key"),
     )
 

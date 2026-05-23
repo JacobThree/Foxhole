@@ -116,15 +116,27 @@ def register_builtin_tools(registry: ToolRegistry = default_registry) -> None:
     from tools.proxmox_tool import register_tools as register_proxmox_tools
     from tools.security_tool import register_tools as register_security_tools
 
-    register_docker_tools(registry)
-    register_portainer_tools(registry)
-    register_proxmox_tools(registry)
-    register_backup_tools(registry)
-    register_plex_tools(registry)
-    register_arr_tools(registry)
-    register_arr_write_tools(registry)
-    register_observability_tools(registry)
-    register_network_tools(registry)
+    from agent.settings import get_settings
+    status = get_settings().integration_status()
+
+    if status.get("docker"):
+        register_docker_tools(registry)
+    if status.get("portainer"):
+        register_portainer_tools(registry)
+    if status.get("proxmox"):
+        register_proxmox_tools(registry)
+        register_backup_tools(registry)
+    if status.get("plex"):
+        register_plex_tools(registry)
+    if status.get("sonarr") or status.get("radarr"):
+        register_arr_tools(registry)
+        register_arr_write_tools(registry)
+    if status.get("tautulli") or status.get("overseerr"):
+        register_observability_tools(registry)
+    if status.get("pihole") or status.get("unbound"):
+        register_network_tools(registry)
+        
     register_security_tools(registry)
+
     if registry is default_registry:
         _builtins_registered = True

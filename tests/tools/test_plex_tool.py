@@ -38,7 +38,7 @@ SESSIONS_XML = """
 
 
 def _settings() -> AppSettings:
-    return AppSettings(plex_base_url="http://plex.local:32400", plex_token=SecretStr("tok"))
+    return AppSettings(plex_enabled=True, plex_base_url="http://plex.local:32400", plex_token=SecretStr("tok"))
 
 
 def _patch_client(monkeypatch, transport: httpx.MockTransport) -> None:
