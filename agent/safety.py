@@ -63,7 +63,7 @@ class WritePolicy:
     ) -> None:
         self._settings = settings
         self._audit_log = audit_log or AuditLog()
-        self._audit_repository = (
+        self._audit_repository: AuditRepository | None = (
             audit_repository if audit_repository is not None else AuditRepository(settings)
         )
         if audit_log is not None and audit_repository is None:
