@@ -6,6 +6,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+ARG VERSION="0.1.0"
+ENV FOXHOLE_VERSION=${VERSION}
+
+LABEL org.opencontainers.image.title="Foxhole" \
+      org.opencontainers.image.description="Homelab diagnostic agent" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.source="https://github.com/JacobThree/Foxhole"
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl nmap \
     && rm -rf /var/lib/apt/lists/*
