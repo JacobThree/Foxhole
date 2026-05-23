@@ -13,6 +13,7 @@ from workers.tasks import (
     check_container_health,
     check_plex_db_health,
     check_storage_thresholds,
+    check_uptime_kuma_monitors,
     retention_prune,
     scan_rogue_macs,
 )
@@ -33,6 +34,7 @@ def test_tasks_return_shared_check_envelope() -> None:
         check_arr_imports.run(),
         check_plex_db_health.run(),
         scan_rogue_macs.run(),
+        check_uptime_kuma_monitors.run(),
     ]
 
     assert {result["status"] for result in results} == {"skipped"}
@@ -56,6 +58,45 @@ def test_retention_prune_task_uses_configured_policy(monkeypatch: pytest.MonkeyP
     )
 
     assert retention_prune.run() == {"events": 7}
+
+
+def test_uptime_kuma_check_flags_failed_monitors(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        tasks,
+        "get_settings",
+        lambda: AppSettings(
+            uptime_kuma_enabled=True,
+            uptime_kuma_base_url="http://uptime.local",
+            uptime_kuma_api_token=SecretStr("token"),
+        ),
+    )
+    monkeypatch.setattr(
+        tasks.uptime_kuma_tool,
+        "monitor_status",
+        lambda args: ToolResult(
+            success=True,
+            data={
+                "monitor_count": 2,
+                "down_count": 1,
+                "degraded_count": 0,
+                "monitors": [
+                    {"id": 1, "name": "Plex", "status": "down", "message": "HTTP 502"},
+                    {"id": 2, "name": "Sonarr", "status": "up"},
+                ],
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        tasks.uptime_kuma_tool,
+        "recent_failures",
+        lambda args: ToolResult(success=True, data={"failure_count": 0, "failures": []}),
+    )
+
+    result = check_uptime_kuma_monitors.run()
+
+    assert result["status"] == "critical"
+    assert result["source"] == "uptime_kuma"
+    assert result["findings"][0]["title"] == "Uptime Kuma monitor failing"
 
 
 def test_container_health_flags_restart_and_security_findings(

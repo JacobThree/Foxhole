@@ -6,11 +6,21 @@ import pytest
 
 from agent import events
 from schemas.python.arr import ArrQueueArgs, ArrService
+from schemas.python.caddy import CaddyListRoutesArgs
 from schemas.python.docker import DockerListContainersArgs
 from schemas.python.network import PiholeSummaryArgs, UnknownDeviceArgs
 from schemas.python.plex import PlexSessionsArgs
 from schemas.python.proxmox import ProxmoxStorageArgs
-from tools import arr_tool, docker_tool, network_tool, plex_tool, proxmox_tool
+from schemas.python.uptime_kuma import UptimeKumaMonitorStatusArgs
+from tools import (
+    arr_tool,
+    caddy_tool,
+    docker_tool,
+    network_tool,
+    plex_tool,
+    proxmox_tool,
+    uptime_kuma_tool,
+)
 
 
 def test_docker_mock_mode_avoids_docker_client(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -97,6 +107,36 @@ def test_network_mock_mode_avoids_pihole_and_nmap_calls(
     assert unknown.success is True
     assert isinstance(unknown.data, dict)
     assert unknown.data["unknown_count"] == 1
+
+
+def test_uptime_kuma_mock_mode_avoids_http_requests(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("FOXHOLE_MOCK_MODE", "1")
+    monkeypatch.setattr(
+        uptime_kuma_tool,
+        "_request_json",
+        lambda *args, **kwargs: pytest.fail("Uptime Kuma HTTP request should not run in mock mode"),
+    )
+
+    result = uptime_kuma_tool.monitor_status(UptimeKumaMonitorStatusArgs())
+
+    assert result.success is True
+    assert isinstance(result.data, dict)
+    assert result.data["down_count"] == 1
+
+
+def test_caddy_mock_mode_avoids_file_or_admin_reads(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("FOXHOLE_MOCK_MODE", "1")
+    monkeypatch.setattr(
+        caddy_tool,
+        "_admin_config_routes",
+        lambda *args, **kwargs: pytest.fail("Caddy admin API should not run in mock mode"),
+    )
+
+    result = caddy_tool.list_routes(CaddyListRoutesArgs())
+
+    assert result.success is True
+    assert isinstance(result.data, dict)
+    assert result.data["route_count"] == 2
 
 
 def test_events_can_be_served_from_mock_fixture(monkeypatch: pytest.MonkeyPatch) -> None:

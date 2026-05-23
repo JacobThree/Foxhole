@@ -135,6 +135,47 @@ def test_dashboard_summary_returns_read_only_control_plane_state(monkeypatch) ->
     )
 
 
+def test_homepage_widget_can_be_token_scoped(monkeypatch) -> None:
+    settings = _settings().model_copy(
+        update={"widget_enabled": True, "widget_token": SecretStr("widget-token")}
+    )
+    app.dependency_overrides[get_settings] = lambda: settings
+    client = TestClient(app)
+
+    async def mock_recent_events(limit: int = 50):
+        return [
+            Event(
+                type="scheduled_check",
+                severity="critical",
+                source="uptime_kuma",
+                payload_summary="Plex monitor is down.",
+            )
+        ]
+
+    monkeypatch.setattr("agent.events.get_recent_events", mock_recent_events)
+
+    denied = client.get("/widgets/homepage?token=bad")
+    response = client.get("/widgets/homepage?token=widget-token")
+
+    app.dependency_overrides.clear()
+    assert denied.status_code == 401
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "critical"
+    assert body["critical_count"] == 1
+    assert body["suggested_action"] == "Plex monitor is down."
+
+
+def test_homepage_widget_is_disabled_by_default() -> None:
+    app.dependency_overrides[get_settings] = _settings
+    client = TestClient(app)
+
+    response = client.get("/widgets/homepage")
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 404
+
+
 def test_capabilities_endpoint_hides_raw_configuration() -> None:
     app.dependency_overrides[get_settings] = _settings
     client = TestClient(app)
@@ -147,6 +188,25 @@ def test_capabilities_endpoint_hides_raw_configuration() -> None:
     sonarr = next(item for item in body if item["integration"] == "sonarr")
     assert sonarr["configured"] is True
     assert any(capability["tool_name"] == "arr_queue" for capability in sonarr["capabilities"])
+    assert "sonarr-secret" not in response.text
+
+
+def test_integration_manifests_endpoint_exposes_metadata_without_secrets() -> None:
+    app.dependency_overrides[get_settings] = _settings
+    client = TestClient(app)
+
+    response = client.get(
+        "/integration-manifests", headers={"Authorization": "Bearer test-token"}
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    body = response.json()
+    sonarr = next(item for item in body if item["id"] == "sonarr")
+    assert sonarr["category"] == "media"
+    assert "sonarr_base_url" in sonarr["config_schema"]["required"]
+    assert any("media.arr.queue.read" in tool["capability_ids"] for tool in sonarr["tools"])
+    assert "foxhole://" in " ".join(sonarr["resource_uris"])
     assert "sonarr-secret" not in response.text
 
 

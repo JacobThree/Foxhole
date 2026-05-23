@@ -96,6 +96,8 @@ class AppSettings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     database_path: str = "/tmp/foxhole/foxhole.db"
     mock_mode: bool = False
+    widget_enabled: bool = False
+    widget_token: SecretStr | None = None
     event_retention_days: int = Field(default=30, ge=1)
     diagnostic_retention_days: int = Field(default=90, ge=1)
     audit_retention_days: int = Field(default=365, ge=1)
@@ -152,6 +154,14 @@ class AppSettings(BaseSettings):
     overseerr_base_url: AnyHttpUrl | None = None
     overseerr_api_key: SecretStr | None = None
 
+    uptime_kuma_enabled: bool = False
+    uptime_kuma_base_url: AnyHttpUrl | None = None
+    uptime_kuma_api_token: SecretStr | None = None
+
+    caddy_enabled: bool = False
+    caddy_config_path: str | None = None
+    caddy_admin_api_url: AnyHttpUrl | None = None
+
     portainer_enabled: bool = False
     portainer_base_url: AnyHttpUrl | None = None
     portainer_api_token: SecretStr | None = None
@@ -173,6 +183,7 @@ class AppSettings(BaseSettings):
         "api_bearer_token",
         "llm_primary_api_key",
         "write_confirmation_secret",
+        "widget_token",
         "proxmox_token_id",
         "proxmox_token_secret",
         "telegram_bot_token",
@@ -181,6 +192,7 @@ class AppSettings(BaseSettings):
         "radarr_api_key",
         "tautulli_api_key",
         "overseerr_api_key",
+        "uptime_kuma_api_token",
         "portainer_api_token",
         "portainer_password",
         "pihole_api_token",
@@ -272,6 +284,20 @@ class AppSettings(BaseSettings):
         )
 
     @property
+    def uptime_kuma(self) -> IntegrationSettings:
+        return IntegrationSettings(
+            enabled=self.uptime_kuma_enabled,
+            base_url=self.uptime_kuma_base_url,
+            token=self.uptime_kuma_api_token,
+        )
+
+    @property
+    def caddy_configured(self) -> bool:
+        return self.caddy_enabled and (
+            self.caddy_config_path is not None or self.caddy_admin_api_url is not None
+        )
+
+    @property
     def portainer_configured(self) -> bool:
         has_token = self.portainer_api_token is not None
         has_jwt_credentials = (
@@ -305,6 +331,8 @@ class AppSettings(BaseSettings):
             "radarr": self.radarr.configured,
             "tautulli": self.tautulli.configured,
             "overseerr": self.overseerr.configured,
+            "uptime_kuma": self.uptime_kuma.configured,
+            "caddy": self.caddy_configured,
             "portainer": self.portainer_configured,
             "pihole": self.pihole.configured,
             "unbound": self.unbound.configured,
@@ -318,6 +346,8 @@ class AppSettings(BaseSettings):
                 "radarr",
                 "pihole",
                 "unbound",
+                "uptime_kuma",
+                "caddy",
             ):
                 status[integration] = True
         return status
@@ -386,6 +416,22 @@ class AppSettings(BaseSettings):
                     "overseerr_api_key": self.overseerr_api_key is not None,
                 },
             ),
+            "uptime_kuma": self._integration_detail(
+                self.uptime_kuma_enabled,
+                self.uptime_kuma.configured,
+                {
+                    "uptime_kuma_base_url": self.uptime_kuma_base_url is not None,
+                    "uptime_kuma_api_token": self.uptime_kuma_api_token is not None,
+                },
+            ),
+            "caddy": self._integration_detail(
+                self.caddy_enabled,
+                self.caddy_configured,
+                {
+                    "caddy_config_or_admin_api": self.caddy_config_path is not None
+                    or self.caddy_admin_api_url is not None,
+                },
+            ),
             "portainer": self._integration_detail(
                 self.portainer_enabled,
                 self.portainer_configured,
@@ -421,6 +467,8 @@ class AppSettings(BaseSettings):
                 "radarr",
                 "pihole",
                 "unbound",
+                "uptime_kuma",
+                "caddy",
             ):
                 details[integration] = {
                     "enabled": True,
@@ -447,6 +495,8 @@ class AppSettings(BaseSettings):
             "redis_url": redact_url(self.redis_url),
             "database_path": self.database_path,
             "mock_mode": self.mock_mode,
+            "widget_enabled": self.widget_enabled,
+            "widget_token_configured": self.widget_token is not None,
             "retention_days": {
                 "events": self.event_retention_days,
                 "diagnostics": self.diagnostic_retention_days,

@@ -399,6 +399,75 @@
       "blocklisted": true,
       "mock": true
     },
+    "uptime_kuma_monitor_status": {
+      "monitor_count": 2,
+      "down_count": 1,
+      "degraded_count": 0,
+      "monitors": [
+        {
+          "id": 1,
+          "name": "Plex",
+          "url": "https://plex.example.test",
+          "type": "http",
+          "status": "down",
+          "uptime_ratio": 0.82,
+          "message": "HTTP 502"
+        },
+        {
+          "id": 2,
+          "name": "Pi-hole",
+          "url": "http://pihole.local/admin",
+          "type": "http",
+          "status": "up",
+          "uptime_ratio": 1.0
+        }
+      ]
+    },
+    "uptime_kuma_recent_failures": {
+      "failure_count": 1,
+      "failures": [
+        {
+          "monitor_id": 1,
+          "monitor_name": "Plex",
+          "status": "down",
+          "time": "2026-05-23T12:00:00+00:00",
+          "message": "HTTP 502"
+        }
+      ]
+    },
+    "caddy_list_routes": {
+      "route_count": 2,
+      "sources": ["mock"],
+      "routes": [
+        {
+          "source": "caddyfile",
+          "route": "plex.example.test",
+          "match": null,
+          "upstreams": ["plex:32400"]
+        },
+        {
+          "source": "caddyfile",
+          "route": "sonarr.example.test",
+          "match": null,
+          "upstreams": ["missing-sonarr:8989"]
+        }
+      ]
+    },
+    "caddy_route_diagnosis": {
+      "route_count": 2,
+      "finding_count": 1,
+      "findings": [
+        {
+          "severity": "warning",
+          "type": "missing_container_upstream",
+          "route": "sonarr.example.test",
+          "match": null,
+          "upstream": "missing-sonarr:8989",
+          "detail": "Upstream host is not in the known Docker container list.",
+          "next_action": "Check Caddy route target, Docker service name, and upstream port."
+        }
+      ]
+    },
     "pihole_summary": {
       "dns_queries_today": 12043,
       "ads_blocked_today": 0,

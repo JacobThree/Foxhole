@@ -7,6 +7,7 @@ from agent.tools.registry import (
     ToolRegistry,
     classify_tool_intents,
     integration_capabilities,
+    integration_manifests,
     register_builtin_tools,
 )
 
@@ -93,6 +94,70 @@ def test_integration_capabilities_follow_configuration_without_secrets() -> None
     assert by_name["plex"].capabilities == []
     assert by_name["sonarr"].missing_configuration == []
     assert "secret-key" not in str([item.model_dump() for item in capabilities])
+
+
+def test_registered_tools_expose_stable_capability_metadata() -> None:
+    settings = AppSettings(
+        docker_enabled=True,
+        docker_socket_proxy_url="tcp://docker-socket-proxy:2375",
+        sonarr_enabled=True,
+        sonarr_base_url="http://sonarr.local:8989",
+        sonarr_api_key=SecretStr("secret-key"),
+    )
+    registry = ToolRegistry()
+    register_builtin_tools(registry, settings=settings)
+
+    tools = registry.list()
+    by_name = {tool.name: tool for tool in tools}
+
+    assert all(tool.capability_ids for tool in tools)
+    assert by_name["docker_list_containers"].integration == "docker"
+    assert by_name["docker_list_containers"].category == "read"
+    assert by_name["docker_list_containers"].capability_ids == ["containers.list"]
+    assert by_name["arr_queue_item_action"].category == "write"
+    assert by_name["arr_queue_item_action"].capability_ids == ["media.arr.queue.confirmed"]
+
+
+def test_integration_manifests_include_mcp_ready_metadata() -> None:
+    settings = AppSettings(
+        docker_enabled=True,
+        docker_socket_proxy_url="tcp://docker-socket-proxy:2375",
+        plex_enabled=True,
+        plex_base_url="http://plex.local:32400",
+        plex_token=SecretStr("secret-token"),
+    )
+    registry = ToolRegistry()
+    register_builtin_tools(registry, settings=settings)
+
+    manifests = integration_manifests(settings, registry)
+    by_id = {manifest.id: manifest for manifest in manifests}
+
+    docker = by_id["docker"]
+    assert docker.name == "Docker"
+    assert docker.category == "containers"
+    assert docker.config_schema["required"] == ["docker_socket_proxy_url"]
+    assert docker.resource_uris == ["foxhole://docker/containers"]
+    assert any(tool.name == "docker_list_containers" for tool in docker.tools)
+    assert any(
+        capability.capability_ids == ["containers.list"] for capability in docker.capabilities
+    )
+    assert "MCP" in docker.mcp_adapter_notes
+    assert "secret-token" not in str([manifest.model_dump() for manifest in manifests])
+
+
+def test_caddy_manifest_exposes_reverse_proxy_resources() -> None:
+    settings = AppSettings(caddy_enabled=True, caddy_config_path="/etc/caddy/Caddyfile")
+    registry = ToolRegistry()
+    register_builtin_tools(registry, settings=settings)
+
+    by_id = {manifest.id: manifest for manifest in integration_manifests(settings, registry)}
+
+    assert by_id["caddy"].category == "reverse_proxy"
+    assert by_id["caddy"].resource_uris == ["foxhole://reverse-proxy/caddy/routes"]
+    assert any(
+        "reverse_proxy.routes.read" in capability.capability_ids
+        for capability in by_id["caddy"].capabilities
+    )
 
 
 def test_intent_classification_scopes_media_tools() -> None:

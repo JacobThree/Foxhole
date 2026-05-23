@@ -44,6 +44,9 @@ class ToolSpec(BaseModel):
     description: str
     parameters: dict[str, Any]
     safety: ToolSafety = ToolSafety.READ_ONLY
+    integration: str | None = None
+    capability_ids: list[str] = Field(default_factory=list)
+    category: str = "read"
 
     def as_openai_tool(self) -> dict[str, Any]:
         return {

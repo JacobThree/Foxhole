@@ -36,7 +36,17 @@ def test_mock_mode_marks_runtime_integrations_available() -> None:
     status = settings.integration_status()
     details = settings.integration_details()
 
-    for integration in ("docker", "proxmox", "plex", "sonarr", "radarr", "pihole", "unbound"):
+    for integration in (
+        "docker",
+        "proxmox",
+        "plex",
+        "sonarr",
+        "radarr",
+        "pihole",
+        "unbound",
+        "uptime_kuma",
+        "caddy",
+    ):
         assert status[integration] is True
         assert details[integration]["enabled"] is True
         assert details[integration]["configured"] is True

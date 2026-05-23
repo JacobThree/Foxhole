@@ -176,6 +176,9 @@ export interface ToolCapability {
   description: string;
   safety: string;
   stage_behavior: string;
+  integration: string | null;
+  category: string;
+  capability_ids: string[];
 }
 
 export interface IntegrationCapabilities {
@@ -184,6 +187,36 @@ export interface IntegrationCapabilities {
   configured: boolean;
   missing_configuration: string[];
   capabilities: ToolCapability[];
+}
+
+export interface ManifestTool {
+  name: string;
+  description: string;
+  safety: string;
+  capability_ids: string[];
+  input_schema: Record<string, unknown>;
+  output_schema: Record<string, unknown>;
+}
+
+export interface IntegrationManifest {
+  id: string;
+  name: string;
+  version: string;
+  category: string;
+  enabled: boolean;
+  configured: boolean;
+  config_schema: {
+    required?: string[];
+    optional?: string[];
+    secrets_redacted?: boolean;
+  };
+  capabilities: ToolCapability[];
+  tools: ManifestTool[];
+  resource_uris: string[];
+  event_types: string[];
+  diagnostic_bundles: string[];
+  safety_posture: string;
+  mcp_adapter_notes: string;
 }
 
 export function loginWithBearerToken(bearerToken: string) {

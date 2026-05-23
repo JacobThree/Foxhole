@@ -1,6 +1,6 @@
 from typing import Annotated, Any
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from redis import asyncio as redis_async
@@ -18,9 +18,11 @@ from schemas.python.chat import ChatRequest, ChatResponse
 from schemas.python.events import (
     AuditReceipt,
     DashboardSummary,
+    DashboardWidgetSummary,
     IncidentDetail,
     IncidentSummary,
     IntegrationCapabilities,
+    IntegrationManifest,
     IntegrationState,
 )
 
@@ -202,6 +204,65 @@ async def dashboard_summary(
     )
 
 
+@app.get("/widgets/homepage", response_model=DashboardWidgetSummary)
+async def homepage_widget(
+    request: Request,
+    settings: Annotated[AppSettings, Depends(get_settings)],
+    limit: int = 50,
+) -> DashboardWidgetSummary:
+    if not settings.widget_enabled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Widget is disabled")
+    _require_widget_token(request, settings)
+
+    from agent.db.repositories import IncidentRepository
+    from agent.events import get_recent_events, severity_counts
+
+    events = await get_recent_events(limit=min(max(limit, 1), 200))
+    counts = severity_counts(events)
+    warning_count = counts.get("warning", 0)
+    critical_count = counts.get("critical", 0)
+    widget_status = "critical" if critical_count else "warning" if warning_count else "ok"
+    latest_incidents = IncidentRepository(settings).list_generated(limit=1)
+    latest_event = next(
+        (
+            event
+            for event in events
+            if event.severity.lower() in {"critical", "error", "high", "warning", "warn"}
+        ),
+        None,
+    )
+    return DashboardWidgetSummary(
+        status=widget_status,
+        warning_count=warning_count,
+        critical_count=critical_count,
+        latest_incident=latest_incidents[0] if latest_incidents else None,
+        suggested_action=_widget_suggested_action(latest_event),
+    )
+
+
+def _require_widget_token(request: Request, settings: AppSettings) -> None:
+    if settings.widget_token is None:
+        return
+    expected = settings.widget_token.get_secret_value()
+    provided = request.query_params.get("token") or request.headers.get("x-foxhole-widget-token")
+    if not provided:
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.lower().startswith("bearer "):
+            provided = auth_header[7:]
+    if provided != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid widget token")
+
+
+def _widget_suggested_action(event: Any | None) -> str | None:
+    if event is None:
+        return None
+    if event.findings:
+        for finding in event.findings:
+            if finding.suggested_actions:
+                return finding.suggested_actions[0].description
+    return event.payload_summary or "Review the latest Foxhole event."
+
+
 @app.get("/capabilities", response_model=list[IntegrationCapabilities])
 async def list_capabilities(
     _: Annotated[None, Depends(require_bearer_token)],
@@ -212,6 +273,18 @@ async def list_capabilities(
     registry = ToolRegistry()
     register_builtin_tools(registry, settings=settings)
     return integration_capabilities(settings, registry)
+
+
+@app.get("/integration-manifests", response_model=list[IntegrationManifest])
+async def list_integration_manifests(
+    _: Annotated[None, Depends(require_bearer_token)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
+) -> list[IntegrationManifest]:
+    from agent.tools.registry import ToolRegistry, integration_manifests, register_builtin_tools
+
+    registry = ToolRegistry()
+    register_builtin_tools(registry, settings=settings)
+    return integration_manifests(settings, registry)
 
 
 @app.get("/audits", response_model=list[AuditReceipt])

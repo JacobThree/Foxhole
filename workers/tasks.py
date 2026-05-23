@@ -28,7 +28,16 @@ from schemas.python.plex import (
     PlexLogAnalysisArgs,
 )
 from schemas.python.security import SecurityPostureArgs
-from tools import arr_tool, backup_tool, docker_tool, network_tool, plex_tool, security_tool
+from schemas.python.uptime_kuma import UptimeKumaMonitorStatusArgs, UptimeKumaRecentFailuresArgs
+from tools import (
+    arr_tool,
+    backup_tool,
+    docker_tool,
+    network_tool,
+    plex_tool,
+    security_tool,
+    uptime_kuma_tool,
+)
 from workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -66,6 +75,14 @@ def check_plex_db_health() -> dict[str, Any]:
 def scan_rogue_macs() -> dict[str, Any]:
     logger.info("Scanning for rogue MACs")
     return _run_check("rogue_macs", "network", _scan_rogue_macs).model_dump(mode="json")
+
+
+@celery_app.task(name="tasks.check_uptime_kuma_monitors")  # type: ignore[untyped-decorator]
+def check_uptime_kuma_monitors() -> dict[str, Any]:
+    logger.info("Checking Uptime Kuma monitors")
+    return _run_check(
+        "uptime_kuma_monitors", "uptime_kuma", _check_uptime_kuma_monitors
+    ).model_dump(mode="json")
 
 
 @celery_app.task(name="foxhole.retention_prune")  # type: ignore[untyped-decorator]
@@ -526,6 +543,77 @@ def _scan_rogue_macs(settings: AppSettings) -> ScheduledCheckResult:
         source="network",
         ok_summary="Network discovery and DNS checks passed.",
         issue_summary=f"{len(findings)} network or DNS issue(s) found.",
+        evidence=evidence,
+        findings=findings,
+    )
+
+
+def _check_uptime_kuma_monitors(settings: AppSettings) -> ScheduledCheckResult:
+    if not settings.uptime_kuma.configured and not settings.mock_mode:
+        return _skipped(
+            "uptime_kuma_monitors",
+            "uptime_kuma",
+            "Uptime Kuma integration is disabled or missing URL/token configuration.",
+        )
+
+    status_result = uptime_kuma_tool.monitor_status(UptimeKumaMonitorStatusArgs())
+    if not status_result.success:
+        return _failed_tool_result(
+            "uptime_kuma_monitors",
+            "uptime_kuma",
+            "Uptime Kuma monitor status is unavailable.",
+            status_result.error,
+        )
+
+    status_data = _dict(status_result.data)
+    monitors = _list_of_dicts(status_data.get("monitors"))
+    findings: list[DiagnosticFinding] = []
+    for monitor in monitors:
+        status = str(monitor.get("status") or "unknown").lower()
+        if status in {"up", "unknown"}:
+            continue
+        risk = RiskLevel.HIGH if status == "down" else RiskLevel.MEDIUM
+        findings.append(
+            _finding(
+                "Uptime Kuma monitor failing",
+                f"{monitor.get('name') or 'Monitor'} is {status}.",
+                risk,
+                "uptime_kuma_monitor_status",
+                monitor,
+                "Correlate the failed monitor with Docker, DNS, and reverse-proxy diagnostics.",
+            )
+        )
+
+    failures_result = uptime_kuma_tool.recent_failures(UptimeKumaRecentFailuresArgs(limit=10))
+    if failures_result.success:
+        for failure in _list_of_dicts(_dict(failures_result.data).get("failures")):
+            findings.append(
+                _finding(
+                    "Uptime Kuma recent failure",
+                    str(failure.get("message") or failure.get("monitor_name") or "Monitor failure"),
+                    _risk_from_tool_severity(failure.get("status")),
+                    "uptime_kuma_recent_failures",
+                    failure,
+                    "Use the failure timestamp to correlate against recent Foxhole events.",
+                )
+            )
+
+    evidence = [
+        EvidenceItem(
+            source="uptime_kuma_monitor_status",
+            summary=f"Checked {len(monitors)} Uptime Kuma monitor(s).",
+            data={
+                "monitor_count": len(monitors),
+                "down_count": status_data.get("down_count"),
+                "degraded_count": status_data.get("degraded_count"),
+            },
+        )
+    ]
+    return _result_from_findings(
+        check="uptime_kuma_monitors",
+        source="uptime_kuma",
+        ok_summary="Uptime Kuma monitors are healthy.",
+        issue_summary=f"{len(findings)} Uptime Kuma monitor issue(s) found.",
         evidence=evidence,
         findings=findings,
     )

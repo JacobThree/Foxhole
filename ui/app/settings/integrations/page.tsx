@@ -4,6 +4,7 @@ import { type FormEvent, useState, useEffect } from "react";
 import { SettingsForm, FormGroup } from "@/components/settings-form";
 import {
   IntegrationCapabilities,
+  IntegrationManifest,
   ReadyResponse,
   fetchApi,
   isApiError,
@@ -12,8 +13,10 @@ import {
 export default function IntegrationsSettingsPage() {
   const [settings, setSettings] = useState<ReadyResponse["settings"] | null>(null);
   const [capabilities, setCapabilities] = useState<IntegrationCapabilities[]>([]);
+  const [manifests, setManifests] = useState<IntegrationManifest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const manifestsById = Object.fromEntries(manifests.map((manifest) => [manifest.id, manifest]));
   const configuredCount = capabilities.filter((item) => item.configured).length;
   const visibleCapabilityCount = capabilities.reduce(
     (total, item) => total + item.capabilities.length,
@@ -31,11 +34,13 @@ export default function IntegrationsSettingsPage() {
     Promise.all([
       fetchApi<ReadyResponse>("/readyz"),
       fetchApi<IntegrationCapabilities[]>("/capabilities"),
+      fetchApi<IntegrationManifest[]>("/integration-manifests"),
     ])
-      .then(([ready, capabilityData]) => {
+      .then(([ready, capabilityData, manifestData]) => {
         if (cancelled) return;
         setSettings(ready.settings);
         setCapabilities(capabilityData);
+        setManifests(manifestData);
         setLoading(false);
       })
       .catch((err) => {
@@ -78,7 +83,12 @@ export default function IntegrationsSettingsPage() {
         body: JSON.stringify({ updates }),
       });
       setSettings(response);
-      setCapabilities(await fetchApi<IntegrationCapabilities[]>("/capabilities"));
+      const [capabilityData, manifestData] = await Promise.all([
+        fetchApi<IntegrationCapabilities[]>("/capabilities"),
+        fetchApi<IntegrationManifest[]>("/integration-manifests"),
+      ]);
+      setCapabilities(capabilityData);
+      setManifests(manifestData);
       alert(`${integrationName} settings saved successfully!`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "unknown error";
@@ -174,12 +184,38 @@ export default function IntegrationsSettingsPage() {
                       <div className="mt-1 text-xs text-slate-400">
                         {capability.stage_behavior}
                       </div>
+                      {capability.capability_ids.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {capability.capability_ids.map((capabilityId) => (
+                            <span
+                              key={capabilityId}
+                              className="rounded bg-slate-900 px-2 py-1 text-xs text-slate-400"
+                            >
+                              {capabilityId}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="mt-4 text-sm text-slate-500">
                   No active capabilities for this integration.
+                </div>
+              )}
+              {manifestsById[item.integration] && (
+                <div className="mt-4 border-t border-slate-800 pt-4 text-xs text-slate-500">
+                  Manifest: {manifestsById[item.integration].name} v
+                  {manifestsById[item.integration].version} ·{" "}
+                  {manifestsById[item.integration].category}
+                  {manifestsById[item.integration].resource_uris.length > 0 && (
+                    <span>
+                      {" "}
+                      · Resources:{" "}
+                      {manifestsById[item.integration].resource_uris.join(", ")}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -282,6 +318,72 @@ export default function IntegrationsSettingsPage() {
             name="proxmox_token_secret"
             placeholder="••••••••••••••••••••"
             className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500" 
+          />
+        </FormGroup>
+      </SettingsForm>
+
+      <SettingsForm
+        title="Uptime Kuma"
+        description="Import monitor status and recent failures for read-only correlation."
+        onSubmit={(e) => handleSubmit(e, "uptime_kuma")}
+      >
+        <FormGroup label="Enable Uptime Kuma">
+          <input
+            type="checkbox"
+            name="uptime_kuma_enabled"
+            defaultChecked={settings?.integrations?.uptime_kuma}
+            className="w-5 h-5 bg-slate-950 border-slate-800 rounded text-blue-500 focus:ring-blue-500"
+          />
+        </FormGroup>
+
+        <FormGroup label="Uptime Kuma Base URL">
+          <input
+            type="text"
+            name="uptime_kuma_base_url"
+            placeholder="http://uptime-kuma.local:3001"
+            className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500"
+          />
+        </FormGroup>
+
+        <FormGroup label="API Token" description="Leave blank to keep existing">
+          <input
+            type="password"
+            name="uptime_kuma_api_token"
+            placeholder="••••••••••••••••••••"
+            className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500"
+          />
+        </FormGroup>
+      </SettingsForm>
+
+      <SettingsForm
+        title="Caddy"
+        description="Read reverse-proxy routes and upstream targets without editing config."
+        onSubmit={(e) => handleSubmit(e, "caddy")}
+      >
+        <FormGroup label="Enable Caddy">
+          <input
+            type="checkbox"
+            name="caddy_enabled"
+            defaultChecked={settings?.integrations?.caddy}
+            className="w-5 h-5 bg-slate-950 border-slate-800 rounded text-blue-500 focus:ring-blue-500"
+          />
+        </FormGroup>
+
+        <FormGroup label="Caddyfile Path">
+          <input
+            type="text"
+            name="caddy_config_path"
+            placeholder="/etc/caddy/Caddyfile"
+            className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500"
+          />
+        </FormGroup>
+
+        <FormGroup label="Caddy Admin API URL">
+          <input
+            type="text"
+            name="caddy_admin_api_url"
+            placeholder="http://localhost:2019"
+            className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500"
           />
         </FormGroup>
       </SettingsForm>

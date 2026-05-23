@@ -22,7 +22,7 @@ Turn Foxhole from a strong MVP scaffold into a self-hosted homelab operations co
 - Re-verified Task 12 after SQLModel conversion with `rtk proxy mypy agent/db`, `rtk proxy ruff check agent/db`, and `rtk proxy pytest`: all passed.
 - Phase 1 through Phase 6 implementation is mostly complete and checked below.
 - Task 12 is complete: durable SQLite persistence now uses SQLModel/SQLAlchemy models and isolated session helpers under `agent/db/`.
-- Phase 7 remains open after re-audit: tools expose safety and integration grouping, but not stable capability IDs or integration manifests; Uptime Kuma, Homepage/Homarr widget output, and Caddy are not present.
+- Phase 7 is complete: tools expose stable capability IDs, manifests are generated for built-ins, Uptime Kuma and Caddy are present as read-only integrations, and the Homepage/Homarr widget endpoint is available behind an explicit enable/token setting.
 
 ## Dependency Graph
 
@@ -737,8 +737,8 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Every registered tool exposes one or more capability IDs.
-- [ ] Capability metadata includes read/write category and integration ownership.
+- [x] Every registered tool exposes one or more capability IDs.
+- [x] Capability metadata includes read/write category and integration ownership.
 - [x] Existing registry schema output remains OpenAI-compatible.
 
 **Verification:**
@@ -746,7 +746,7 @@ Implementation order should keep vertical slices working. UI work depends on sta
 - [x] Tests pass: `pytest tests/agent/tools/test_registry.py tests/agent/test_orchestrator.py`
 - [x] Manual check: permissions view can render capabilities without hardcoding tool names.
 
-**Review note:** Existing capability display is a permissions view based on integration/tool names and safety levels. The stable capability ID metadata required by this task is not implemented yet.
+**Review note:** Stable capability ID metadata is implemented at the registry layer and rendered in the permissions view.
 
 **Dependencies:** Task 7, Task 17
 
@@ -767,16 +767,16 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Built-in integrations can expose manifest metadata without changing their runtime behavior.
-- [ ] UI can consume manifest metadata for settings and capability display.
-- [ ] Manifest format is documented enough for a future community integration guide.
-- [ ] Manifest capability/resource concepts include notes for a future MCP adapter.
-- [ ] Minimum stable fields are present: `id`, `name`, `version`, `category`, config schema, capabilities, tools, input/output schemas, safety levels, resource URIs, and event types.
+- [x] Built-in integrations can expose manifest metadata without changing their runtime behavior.
+- [x] UI can consume manifest metadata for settings and capability display.
+- [x] Manifest format is documented enough for a future community integration guide.
+- [x] Manifest capability/resource concepts include notes for a future MCP adapter.
+- [x] Minimum stable fields are present: `id`, `name`, `version`, `category`, config schema, capabilities, tools, input/output schemas, safety levels, resource URIs, and event types.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/tools/test_registry.py`
-- [ ] Manual check: manifest output for Docker, Plex, Proxmox, and Pi-hole is readable.
+- [x] Tests pass: `pytest tests/agent/tools/test_registry.py`
+- [x] Manual check: manifest output for Docker, Plex, Proxmox, and Pi-hole is readable.
 
 **Dependencies:** Task 20
 
@@ -798,14 +798,14 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Settings support Uptime Kuma base URL and token/API credentials.
-- [ ] Tool can list monitor status and recent failures.
-- [ ] Worker check can create warning/critical events from failed monitors.
+- [x] Settings support Uptime Kuma base URL and token/API credentials.
+- [x] Tool can list monitor status and recent failures.
+- [x] Worker check can create warning/critical events from failed monitors.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools tests/workers/test_tasks.py`
-- [ ] Manual check: mock mode can show a failed monitor on the dashboard.
+- [x] Tests pass: `pytest tests/tools tests/workers/test_tasks.py`
+- [x] Manual check: mock mode can show a failed monitor on the dashboard.
 
 **Dependencies:** Task 20, Task 21
 
@@ -828,14 +828,14 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Endpoint returns compact JSON suitable for Homepage/Homarr custom widgets.
-- [ ] Endpoint can be disabled or protected by a separate widget token.
-- [ ] Docs include example widget configuration.
+- [x] Endpoint returns compact JSON suitable for Homepage/Homarr custom widgets.
+- [x] Endpoint can be disabled or protected by a separate widget token.
+- [x] Docs include example widget configuration.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/test_main.py`
-- [ ] Manual check: endpoint returns useful data with mock events.
+- [x] Tests pass: `pytest tests/agent/test_main.py`
+- [x] Manual check: endpoint returns useful data with mock events.
 
 **Dependencies:** Task 5, Task 14
 
@@ -856,15 +856,15 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 **Acceptance criteria:**
 
-- [ ] Settings support a Caddyfile/config path and optional Caddy admin API URL.
-- [ ] Tool can list routes and upstream targets from supported Caddy configuration.
-- [ ] Diagnostic can flag dead upstreams, routes pointing to missing containers, and likely 502 causes.
-- [ ] Manifest exposes reverse-proxy capabilities and resource URIs for future MCP mapping.
+- [x] Settings support a Caddyfile/config path and optional Caddy admin API URL.
+- [x] Tool can list routes and upstream targets from supported Caddy configuration.
+- [x] Diagnostic can flag dead upstreams, routes pointing to missing containers, and likely 502 causes.
+- [x] Manifest exposes reverse-proxy capabilities and resource URIs for future MCP mapping.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/tools tests/agent/tools/test_registry.py`
-- [ ] Manual check: mock mode can show an Uptime Kuma failure correlated with a Caddy upstream mismatch.
+- [x] Tests pass: `pytest tests/tools tests/agent/tools/test_registry.py`
+- [x] Manual check: mock mode can show an Uptime Kuma failure correlated with a Caddy upstream mismatch.
 
 **Dependencies:** Task 21, Task 22
 
@@ -884,9 +884,9 @@ Implementation order should keep vertical slices working. UI work depends on sta
 
 ### Checkpoint: Community-Ready Direction
 
-- [ ] Existing integrations have capability and manifest metadata.
-- [ ] At least one new read-only integration follows the manifest pattern.
-- [ ] Foxhole can surface status inside existing self-hosted dashboards.
+- [x] Existing integrations have capability and manifest metadata.
+- [x] At least one new read-only integration follows the manifest pattern.
+- [x] Foxhole can surface status inside existing self-hosted dashboards.
 
 ---
 

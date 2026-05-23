@@ -86,6 +86,9 @@ class ToolCapability(BaseModel):
     description: str
     safety: str
     stage_behavior: str
+    integration: str | None = None
+    category: str = "read"
+    capability_ids: list[str] = Field(default_factory=list)
 
 
 class IntegrationCapabilities(BaseModel):
@@ -94,6 +97,32 @@ class IntegrationCapabilities(BaseModel):
     configured: bool
     missing_configuration: list[str] = Field(default_factory=list)
     capabilities: list[ToolCapability] = Field(default_factory=list)
+
+
+class ManifestTool(BaseModel):
+    name: str
+    description: str
+    safety: str
+    capability_ids: list[str] = Field(default_factory=list)
+    input_schema: dict[str, Any] = Field(default_factory=dict)
+    output_schema: dict[str, Any] = Field(default_factory=dict)
+
+
+class IntegrationManifest(BaseModel):
+    id: str
+    name: str
+    version: str = "0.1.0"
+    category: str
+    enabled: bool
+    configured: bool
+    config_schema: dict[str, Any] = Field(default_factory=dict)
+    capabilities: list[ToolCapability] = Field(default_factory=list)
+    tools: list[ManifestTool] = Field(default_factory=list)
+    resource_uris: list[str] = Field(default_factory=list)
+    event_types: list[str] = Field(default_factory=list)
+    diagnostic_bundles: list[str] = Field(default_factory=list)
+    safety_posture: str
+    mcp_adapter_notes: str
 
 
 class AuditReceipt(BaseModel):
@@ -119,6 +148,14 @@ class IncidentSummary(BaseModel):
     correlation_id: str | None = None
     pinned: bool = False
     event_count: int = 0
+
+
+class DashboardWidgetSummary(BaseModel):
+    status: str
+    warning_count: int = 0
+    critical_count: int = 0
+    latest_incident: IncidentSummary | None = None
+    suggested_action: str | None = None
 
 
 class IncidentTimelineEntry(BaseModel):

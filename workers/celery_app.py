@@ -42,6 +42,10 @@ celery_app.conf.update(
             "task": "tasks.scan_rogue_macs",
             "schedule": crontab(minute="*/15"),
         },
+        "check-uptime-kuma-monitors": {
+            "task": "tasks.check_uptime_kuma_monitors",
+            "schedule": crontab(minute="*/5"),
+        },
         "retention-prune": {
             "task": "foxhole.retention_prune",
             "schedule": crontab(minute="0", hour="3"),
