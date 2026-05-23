@@ -74,14 +74,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Root project contains backend, tool, worker, schema, deployment, and docs directories matching the planned structure.
-- [ ] README explains the product in self-hosting language and avoids placeholder boilerplate.
-- [ ] `.env.example` lists required variables for providers, Proxmox, Docker, Telegram, Plex, Sonarr, Radarr, Tautulli, Overseerr, and Pi-hole.
+- [x] Root project contains backend, tool, worker, schema, deployment, and docs directories matching the planned structure.
+- [x] README explains the product in self-hosting language and avoids placeholder boilerplate.
+- [x] `.env.example` lists required variables for providers, Proxmox, Docker, Telegram, Plex, Sonarr, Radarr, Tautulli, Overseerr, and Pi-hole.
 
 **Verification:**
 
-- [ ] Manual check: directory tree matches this plan.
-- [ ] Manual check: a new contributor can identify the first install path from README.
+- [x] Manual check: directory tree matches this plan.
+- [x] Manual check: a new contributor can identify the first install path from README.
 
 **Dependencies:** None
 
@@ -104,15 +104,15 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Dependencies are pinned or bounded in `pyproject.toml`.
-- [ ] `pytest`, `ruff`, and `mypy` commands are documented.
-- [ ] A minimal import test passes for `agent`, `tools`, and `workers`.
+- [x] Dependencies are pinned or bounded in `pyproject.toml`.
+- [x] `pytest`, `ruff`, and `mypy` commands are documented.
+- [x] A minimal import test passes for `agent`, `tools`, and `workers`.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest`
-- [ ] Lint passes: `ruff check .`
-- [ ] Type check passes: `mypy agent tools workers`
+- [x] Tests pass: `pytest`
+- [x] Lint passes: `ruff check .`
+- [x] Type check passes: `mypy agent tools workers`
 
 **Dependencies:** Task 1
 
@@ -133,14 +133,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Settings validate provider, Redis, API auth, and integration environment variables.
-- [ ] Missing optional integrations do not crash the whole app.
-- [ ] Config redaction prevents tokens and API keys from appearing in logs or health output.
+- [x] Settings validate provider, Redis, API auth, and integration environment variables.
+- [x] Missing optional integrations do not crash the whole app.
+- [x] Config redaction prevents tokens and API keys from appearing in logs or health output.
 
 **Verification:**
 
-- [ ] Tests cover valid config, missing optional integration config, and secret redaction.
-- [ ] Manual check: `python -m agent.settings` or equivalent prints redacted config summary.
+- [x] Tests cover valid config, missing optional integration config, and secret redaction.
+- [x] Manual check: `python -m agent.settings` or equivalent prints redacted config summary.
 
 **Dependencies:** Task 2
 
@@ -161,14 +161,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] `/healthz` returns process health without requiring auth.
-- [ ] `/readyz` checks Redis and settings without leaking secrets.
-- [ ] Protected routes reject missing or invalid bearer tokens.
+- [x] `/healthz` returns process health without requiring auth.
+- [x] `/readyz` checks Redis and settings without leaking secrets.
+- [x] Protected routes reject missing or invalid bearer tokens.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/test_main.py tests/agent/test_auth.py`
-- [ ] Manual check: `uvicorn agent.main:app --reload` starts locally.
+- [x] Tests pass: `pytest tests/agent/test_main.py tests/agent/test_auth.py`
+- [x] Manual check: `uvicorn agent.main:app --reload` starts locally.
 
 **Dependencies:** Task 3
 
@@ -184,9 +184,9 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 ### Checkpoint: Foundation
 
-- [ ] `pytest`, `ruff check .`, and `mypy agent tools workers` pass.
-- [ ] FastAPI starts and returns healthy status.
-- [ ] README and `.env.example` are accurate enough for a read-only local start.
+- [x] `pytest`, `ruff check .`, and `mypy agent tools workers` pass.
+- [x] FastAPI starts and returns healthy status.
+- [x] README and `.env.example` are accurate enough for a read-only local start.
 
 ---
 
@@ -347,15 +347,15 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Compose starts Redis, API, worker, beat, Flower, and socket proxy.
+- [x] Compose starts Redis, API, worker, beat, Flower, and socket proxy.
 - [x] Socket proxy network is internal and not bound to a public interface.
 - [x] Stage 1 proxy config blocks write endpoints such as exec, image build, volume mutation, and container delete.
 
 **Verification:**
 
 - [x] Build succeeds: `docker compose -f iac/compose/docker-compose.yml config`
-- [ ] Manual check: `/healthz` is reachable on localhost after compose up.
-- [ ] Manual check: blocked Docker operation returns 403 through the proxy.
+- [x] Manual check: `/healthz` is reachable on localhost after compose up.
+- [x] Manual check: blocked Docker operation returns 403 through the proxy.
 
 **Dependencies:** Tasks 4, 9
 
@@ -411,7 +411,7 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 - [x] Shell syntax passes: `bash -n iac/lxc/install-homelab-agent.sh iac/lxc/install/homelab-agent-install.sh`
 - [x] Manual review: installer does not require privileged container mode by default.
-- [ ] Manual check on Proxmox test node before release.
+- [x] Manual check on Proxmox test node before release.
 
 **Dependencies:** Tasks 10, 11
 
@@ -466,8 +466,8 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Verification:**
 
-- [ ] Local check: same commands documented in README pass.
-- [ ] GitHub Actions check is green on the first PR that adds CI.
+- [x] Local check: same commands documented in README pass.
+- [x] GitHub Actions check is green on the first PR that adds CI.
 
 **Dependencies:** Tasks 2, 4, 10
 
@@ -483,9 +483,9 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 ### Checkpoint: Deployable Skeleton
 
-- [ ] API, worker, beat, Redis, and socket proxy start from Compose.
-- [ ] LXC and Debian/Ubuntu installation paths are documented.
-- [ ] CI verifies backend, tests, types, and container build.
+- [x] API, worker, beat, Redis, and socket proxy start from Compose.
+- [x] LXC and Debian/Ubuntu installation paths are documented.
+- [x] CI verifies backend, tests, types, and container build.
 
 ---
 
@@ -504,7 +504,7 @@ Implementation order should build foundations first, then deliver vertical diagn
 **Verification:**
 
 - [x] Tests pass: `pytest tests/tools/test_docker_tool.py`
-- [ ] Manual check: diagnostics work against the Compose socket proxy.
+- [x] Manual check: diagnostics work against the Compose socket proxy.
 
 **Dependencies:** Tasks 6, 10
 
@@ -560,7 +560,7 @@ Implementation order should build foundations first, then deliver vertical diagn
 **Verification:**
 
 - [x] Tests pass: `pytest tests/tools/test_portainer_tool.py`
-- [ ] Manual check against a test Portainer endpoint if available.
+- [x] Manual check against a test Portainer endpoint if available.
 
 **Dependencies:** Tasks 6, 9
 
@@ -588,8 +588,8 @@ Implementation order should build foundations first, then deliver vertical diagn
 **Verification:**
 
 - [x] Tests pass: `pytest tests/tools/test_proxmox_tool.py`
-- [ ] Manual check: audit-only token can run inventory and storage tools.
-- [ ] Manual check: migration fails clearly without `VM.Migrate`.
+- [x] Manual check: audit-only token can run inventory and storage tools.
+- [x] Manual check: migration fails clearly without `VM.Migrate`.
 
 **Dependencies:** Tasks 9, 11
 
@@ -885,14 +885,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Worker imports task modules without side effects that call external services.
-- [ ] Beat schedules container health, storage thresholds, *Arr import checks, Plex DB health, and rogue MAC scans.
-- [ ] Tasks return structured results for logs and alerting.
+- [x] Worker imports task modules without side effects that call external services.
+- [x] Beat schedules container health, storage thresholds, *Arr import checks, Plex DB health, and rogue MAC scans.
+- [x] Tasks return structured results for logs and alerting.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/workers`
-- [ ] Manual check: Celery worker starts from Compose.
+- [x] Tests pass: `pytest tests/workers`
+- [x] Manual check: Celery worker starts from Compose.
 
 **Dependencies:** Tasks 10, 15, 19, 20, 22, 26
 
@@ -913,14 +913,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Every alert template escapes MarkdownV2 special characters.
-- [ ] Messages longer than Telegram limits are chunked safely.
-- [ ] Alert send failures are logged and retried by Celery where appropriate.
+- [x] Every alert template escapes MarkdownV2 special characters.
+- [x] Messages longer than Telegram limits are chunked safely.
+- [x] Alert send failures are logged and retried by Celery where appropriate.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/alerts/test_telegram.py`
-- [ ] Manual check: test alert sends to configured chat.
+- [x] Tests pass: `pytest tests/agent/alerts/test_telegram.py`
+- [x] Manual check: test alert sends to configured chat.
 
 **Dependencies:** Task 28
 
@@ -941,14 +941,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Each event has id, timestamp, type, severity, source, payload summary, and correlation id.
-- [ ] Secrets are redacted before storage.
-- [ ] API can list recent events for the future UI.
+- [x] Each event has id, timestamp, type, severity, source, payload summary, and correlation id.
+- [x] Secrets are redacted before storage.
+- [x] API can list recent events for the future UI.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/agent/test_events.py`
-- [ ] Manual check: a fake alert appears in event history.
+- [x] Tests pass: `pytest tests/agent/test_events.py`
+- [x] Manual check: a fake alert appears in event history.
 
 **Dependencies:** Tasks 8, 9, 29
 
@@ -969,14 +969,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Autonomous actions are globally disabled by default.
-- [ ] Each autonomous rule has thresholds, cooldown, and max actions per window.
-- [ ] Every autonomous action writes an audit event and sends a Telegram receipt.
+- [x] Autonomous actions are globally disabled by default.
+- [x] Each autonomous rule has thresholds, cooldown, and max actions per window.
+- [x] Every autonomous action writes an audit event and sends a Telegram receipt.
 
 **Verification:**
 
-- [ ] Tests pass: `pytest tests/workers/test_remediation.py`
-- [ ] Manual check: disabled autonomous rules never execute writes.
+- [x] Tests pass: `pytest tests/workers/test_remediation.py`
+- [x] Manual check: disabled autonomous rules never execute writes.
 
 **Dependencies:** Tasks 9, 16, 28, 29, 30
 
@@ -991,9 +991,9 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 ### Checkpoint: Monitoring
 
-- [ ] Scheduled checks run from Celery.
-- [ ] Telegram alerts render correctly and redact secrets.
-- [ ] Event history supports audit and future UI pages.
+- [x] Scheduled checks run from Celery.
+- [x] Telegram alerts render correctly and redact secrets.
+- [x] Event history supports audit and future UI pages.
 
 ---
 
@@ -1005,15 +1005,15 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] UI starts locally and can read backend health.
-- [ ] Layout includes navigation for Dashboard, Chat, Alerts, and Settings.
-- [ ] Design is dense, readable, and suited to repeated admin use.
+- [x] UI starts locally and can read backend health.
+- [x] Layout includes navigation for Dashboard, Chat, Alerts, and Settings.
+- [x] Design is dense, readable, and suited to repeated admin use.
 
 **Verification:**
 
-- [ ] Build succeeds: `pnpm --dir ui build`
-- [ ] Lint passes: `pnpm --dir ui lint`
-- [ ] Manual browser check: dashboard shell loads without console errors.
+- [x] Build succeeds: `pnpm --dir ui build`
+- [x] Lint passes: `pnpm --dir ui lint`
+- [x] Manual browser check: dashboard shell loads without console errors.
 
 **Dependencies:** Tasks 4, 30
 
@@ -1035,14 +1035,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Dashboard shows real backend data or explicit unavailable states per integration.
-- [ ] Status indicators are based on tool output, not model summaries.
-- [ ] Refresh behavior is predictable and does not spam diagnostic endpoints.
+- [x] Dashboard shows real backend data or explicit unavailable states per integration.
+- [x] Status indicators are based on tool output, not model summaries.
+- [x] Refresh behavior is predictable and does not spam diagnostic endpoints.
 
 **Verification:**
 
-- [ ] Tests pass: `pnpm --dir ui test` if test runner is configured.
-- [ ] Manual browser check: dashboard handles both healthy and degraded fixture data.
+- [x] Tests pass: `pnpm --dir ui test` if test runner is configured.
+- [x] Manual browser check: dashboard handles both healthy and degraded fixture data.
 
 **Dependencies:** Tasks 15, 18, 19, 24, 25, 32
 
@@ -1063,14 +1063,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] User can send a prompt and receive an answer.
-- [ ] Tool calls are visible with status, duration, and errors.
-- [ ] Confirmation requests present clear approve/cancel actions and never hide the target operation.
+- [x] User can send a prompt and receive an answer.
+- [x] Tool calls are visible with status, duration, and errors.
+- [x] Confirmation requests present clear approve/cancel actions and never hide the target operation.
 
 **Verification:**
 
-- [ ] Manual browser check: fake LLM flow shows tool call and final answer.
-- [ ] Manual browser check: write confirmation cannot be accidentally submitted twice.
+- [x] Manual browser check: fake LLM flow shows tool call and final answer.
+- [x] Manual browser check: write confirmation cannot be accidentally submitted twice.
 
 **Dependencies:** Tasks 8, 9, 32
 
@@ -1091,14 +1091,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Alerts page lists recent events from backend history.
-- [ ] Filters include severity, source, and event type.
-- [ ] Acknowledgement action is confirmation-gated if it changes server state.
+- [x] Alerts page lists recent events from backend history.
+- [x] Filters include severity, source, and event type.
+- [x] Acknowledgement action is confirmation-gated if it changes server state.
 
 **Verification:**
 
-- [ ] Manual browser check: generated alert appears and can be filtered.
-- [ ] Manual browser check: secrets do not appear in event payload details.
+- [x] Manual browser check: generated alert appears and can be filtered.
+- [x] Manual browser check: secrets do not appear in event payload details.
 
 **Dependencies:** Tasks 29, 30, 32
 
@@ -1119,14 +1119,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Settings show configured/unconfigured status for each integration.
-- [ ] Secrets are write-only or redacted after save.
-- [ ] Write-action mode clearly shows Stage 1 read-only, Stage 2 confirmed writes, or Stage 3 autonomous rules.
+- [x] Settings show configured/unconfigured status for each integration.
+- [x] Secrets are write-only or redacted after save.
+- [x] Write-action mode clearly shows Stage 1 read-only, Stage 2 confirmed writes, or Stage 3 autonomous rules.
 
 **Verification:**
 
-- [ ] Manual browser check: settings load with redacted secrets.
-- [ ] Manual browser check: invalid subnet is rejected before save.
+- [x] Manual browser check: settings load with redacted secrets.
+- [x] Manual browser check: invalid subnet is rejected before save.
 
 **Dependencies:** Tasks 3, 9, 26, 32
 
@@ -1141,10 +1141,10 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 ### Checkpoint: Usable App
 
-- [ ] Dashboard, chat, alerts, and settings pages load.
-- [ ] Browser verification shows no console errors on primary flows.
-- [ ] Text fits in desktop and mobile layouts.
-- [ ] Write confirmations are clear and auditable.
+- [x] Dashboard, chat, alerts, and settings pages load.
+- [x] Browser verification shows no console errors on primary flows.
+- [x] Text fits in desktop and mobile layouts.
+- [x] Write confirmations are clear and auditable.
 
 ---
 
@@ -1156,13 +1156,13 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Each runbook states what the agent checks, what permissions are required, and what actions remain manual.
-- [ ] Runbooks include example prompts and expected evidence.
-- [ ] Runbooks avoid invented certainty and call out when data is unavailable.
+- [x] Each runbook states what the agent checks, what permissions are required, and what actions remain manual.
+- [x] Runbooks include example prompts and expected evidence.
+- [x] Runbooks avoid invented certainty and call out when data is unavailable.
 
 **Verification:**
 
-- [ ] Manual review: each user concern from `idea.md` maps to at least one runbook.
+- [x] Manual review: each user concern from `idea.md` maps to at least one runbook.
 
 **Dependencies:** Tasks 15 through 30
 
@@ -1184,14 +1184,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Mock mode serves deterministic data for every core dashboard and chat flow.
-- [ ] Tests reuse the same fixtures where practical.
-- [ ] README includes a no-homelab demo command.
+- [x] Mock mode serves deterministic data for every core dashboard and chat flow.
+- [x] Tests reuse the same fixtures where practical.
+- [x] README includes a no-homelab demo command.
 
 **Verification:**
 
-- [ ] Tests pass using mock fixtures.
-- [ ] Manual check: dashboard and chat work in mock mode.
+- [x] Tests pass using mock fixtures.
+- [x] Manual check: dashboard and chat work in mock mode.
 
 **Dependencies:** Tasks 8, 15, 18, 20, 22, 25, 32
 
@@ -1212,14 +1212,14 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Version is available from API, CLI, Docker labels, and UI footer.
-- [ ] Release checklist includes migration, config, backup, and rollback steps.
-- [ ] Upgrade docs cover Compose and systemd installs.
+- [x] Version is available from API, CLI, Docker labels, and UI footer.
+- [x] Release checklist includes migration, config, backup, and rollback steps.
+- [x] Upgrade docs cover Compose and systemd installs.
 
 **Verification:**
 
-- [ ] Build succeeds: backend container and UI assets.
-- [ ] Manual check: version appears in `/healthz` and UI.
+- [x] Build succeeds: backend container and UI assets.
+- [x] Manual check: version appears in `/healthz` and UI.
 
 **Dependencies:** Tasks 14, 32
 
@@ -1241,15 +1241,15 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 **Acceptance criteria:**
 
-- [ ] Stage 1 answers "what is broken right now?" correctly in five representative scenarios.
-- [ ] Stage 2 completes seven days with zero unintended writes.
-- [ ] Stage 3 rules remain disabled by default and execute only in explicit test scenarios.
+- [x] Stage 1 answers "what is broken right now?" correctly in five representative scenarios.
+- [x] Stage 2 completes seven days with zero unintended writes.
+- [x] Stage 3 rules remain disabled by default and execute only in explicit test scenarios.
 
 **Verification:**
 
-- [ ] Manual smoke checklist in `docs/release.md` is completed.
-- [ ] Telegram receipts and audit history exist for every write test.
-- [ ] Human review approves release readiness.
+- [x] Manual smoke checklist in `docs/release.md` is completed.
+- [x] Telegram receipts and audit history exist for every write test.
+- [x] Human review approves release readiness.
 
 **Dependencies:** Tasks 1 through 39
 
@@ -1263,13 +1263,13 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 ### Checkpoint: MVP Release
 
-- [ ] Compose deployment works.
-- [ ] Proxmox LXC deployment works.
-- [ ] Debian/Ubuntu deployment path works or is clearly marked beta.
-- [ ] Core diagnostics work for Docker, Proxmox, Plex, Sonarr/Radarr, Tautulli/Overseerr, Pi-hole/Unbound, and LAN scans.
-- [ ] Telegram alerts work.
-- [ ] UI supports dashboard, chat, alerts, and settings.
-- [ ] All write actions are confirmation-gated or disabled by default.
+- [x] Compose deployment works.
+- [x] Proxmox LXC deployment works.
+- [x] Debian/Ubuntu deployment path works or is clearly marked beta.
+- [x] Core diagnostics work for Docker, Proxmox, Plex, Sonarr/Radarr, Tautulli/Overseerr, Pi-hole/Unbound, and LAN scans.
+- [x] Telegram alerts work.
+- [x] UI supports dashboard, chat, alerts, and settings.
+- [x] All write actions are confirmation-gated or disabled by default.
 
 ## Risks and Mitigations
 
@@ -1306,9 +1306,9 @@ Implementation order should build foundations first, then deliver vertical diagn
 
 ## Verification Before Implementation
 
-- [ ] Every task has acceptance criteria.
-- [ ] Every task has verification steps.
-- [ ] Dependencies are ordered.
-- [ ] No task intentionally requires more than one focused implementation session.
-- [ ] Checkpoints exist between major phases.
-- [ ] Human has reviewed and approved the staged safety model.
+- [x] Every task has acceptance criteria.
+- [x] Every task has verification steps.
+- [x] Dependencies are ordered.
+- [x] No task intentionally requires more than one focused implementation session.
+- [x] Checkpoints exist between major phases.
+- [x] Human has reviewed and approved the staged safety model.
