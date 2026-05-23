@@ -10,6 +10,14 @@ from agent.orchestrator import AgentOrchestrator
 from agent.safety import WritePolicy
 from agent.settings import AppSettings, get_settings
 from agent.tools.registry import ToolRegistry
+from schemas.python.chat import (
+    ChatResponse,
+    ConfidenceLevel,
+    DiagnosticFinding,
+    EvidenceItem,
+    RiskLevel,
+    SuggestedAction,
+)
 
 
 class StaticLLM:
@@ -51,3 +59,41 @@ def test_chat_requires_auth_and_returns_answer() -> None:
     assert missing.status_code == 401
     assert ok.status_code == 200
     assert ok.json()["answer"] == "No tool call needed."
+
+
+def test_chat_response_serializes_evidence_without_breaking_existing_fields() -> None:
+    response = ChatResponse(
+        conversation_id="conversation-1",
+        answer="Plex is CPU-bound during transcodes.",
+        findings=[
+            DiagnosticFinding(
+                title="Plex transcodes are saturated",
+                summary="Two sessions are transcoding while CPU is pinned.",
+                risk=RiskLevel.MEDIUM,
+                confidence=ConfidenceLevel.HIGH,
+                evidence=[
+                    EvidenceItem(
+                        source="plex_inspect_sessions",
+                        summary="Active sessions and host load were checked.",
+                        data={"plex_token": "secret-token", "cpu_percent": 98},
+                    )
+                ],
+                suggested_actions=[
+                    SuggestedAction(
+                        title="Restart Plex container",
+                        description="Clear the stuck transcode workers.",
+                        risk=RiskLevel.HIGH,
+                        requires_confirmation=True,
+                        confirmation_token="confirm-123",
+                    )
+                ],
+            )
+        ],
+    )
+
+    body = response.model_dump(mode="json")
+
+    assert body["answer"] == "Plex is CPU-bound during transcodes."
+    assert body["tool_traces"] == []
+    assert body["findings"][0]["evidence"][0]["data"]["plex_token"] == "********"
+    assert "secret-token" not in response.model_dump_json()

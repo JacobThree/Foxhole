@@ -1,6 +1,6 @@
 import os
 from functools import lru_cache
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import AnyHttpUrl, Field, SecretStr, field_serializer
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -87,6 +87,12 @@ class AppSettings(BaseSettings):
 
     environment: str = "development"
     api_bearer_token: SecretStr | None = None
+    session_cookie_secure: bool | None = None
+    session_cookie_samesite: Literal["lax", "strict", "none"] | None = None
+    session_cookie_name: str | None = None
+    ui_allowed_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
+    )
     redis_url: str = "redis://localhost:6379/0"
 
     llm_primary_model: str = "agent-primary"
@@ -176,6 +182,24 @@ class AppSettings(BaseSettings):
     @property
     def api_auth_configured(self) -> bool:
         return self.api_bearer_token is not None and bool(self.api_bearer_token.get_secret_value())
+
+    @property
+    def cookie_secure(self) -> bool:
+        if self.session_cookie_secure is not None:
+            return self.session_cookie_secure
+        return self.environment.lower() in {"production", "https"}
+
+    @property
+    def cookie_samesite(self) -> Literal["lax", "strict", "none"]:
+        if self.session_cookie_samesite is not None:
+            return self.session_cookie_samesite
+        return "strict" if self.cookie_secure else "lax"
+
+    @property
+    def cookie_name(self) -> str:
+        if self.session_cookie_name is not None:
+            return self.session_cookie_name
+        return "__Host-foxhole_session" if self.cookie_secure else "foxhole_session"
 
     @property
     def proxmox(self) -> ProxmoxSettings:

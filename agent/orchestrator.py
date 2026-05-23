@@ -11,7 +11,17 @@ from agent.settings import AppSettings
 from agent.tools.argument_parsing import parse_tool_arguments
 from agent.tools.base import ToolResult
 from agent.tools.registry import ToolRegistry, default_registry, register_builtin_tools
-from schemas.python.chat import ChatRequest, ChatResponse, ToolTrace
+from schemas.python.chat import (
+    AgentBudgetMetadata,
+    ChatRequest,
+    ChatResponse,
+    ConfidenceLevel,
+    DiagnosticFinding,
+    EvidenceItem,
+    RiskLevel,
+    SuggestedAction,
+    ToolTrace,
+)
 
 
 class InMemoryConversationStore:
@@ -97,7 +107,13 @@ class AgentOrchestrator:
             answer = first.content or ""
             messages.append({"role": "assistant", "content": answer})
 
-        return ChatResponse(conversation_id=conversation_id, answer=answer, tool_traces=traces)
+        return ChatResponse(
+            conversation_id=conversation_id,
+            answer=answer,
+            tool_traces=traces,
+            findings=_findings_from_traces(traces),
+            budget=AgentBudgetMetadata(tool_call_count=len(traces)),
+        )
 
 
 def _answer_with_observations(model_content: str, traces: Sequence[ToolTrace]) -> str:
@@ -116,6 +132,45 @@ def _answer_with_observations(model_content: str, traces: Sequence[ToolTrace]) -
         "Model inference:\n"
         f"{model_content}"
     )
+
+
+def _findings_from_traces(traces: Sequence[ToolTrace]) -> list[DiagnosticFinding]:
+    findings: list[DiagnosticFinding] = []
+    for trace in traces:
+        write_action = trace.result.write_action
+        suggested_actions: list[SuggestedAction] = []
+        if write_action.requested:
+            suggested_actions.append(
+                SuggestedAction(
+                    title=f"Run {trace.tool_name}",
+                    description=trace.result.error or "Execute the requested write action.",
+                    risk=RiskLevel.HIGH,
+                    requires_confirmation=write_action.confirmation_required,
+                    confirmation_token=write_action.confirmation_token,
+                )
+            )
+
+        findings.append(
+            DiagnosticFinding(
+                title=f"{trace.tool_name} result",
+                summary=trace.result.error
+                or ("Tool completed successfully." if trace.result.success else "Tool failed."),
+                risk=RiskLevel.LOW if trace.result.success else RiskLevel.MEDIUM,
+                confidence=ConfidenceLevel.HIGH,
+                evidence=[
+                    EvidenceItem(
+                        source=trace.tool_name,
+                        summary="Structured tool result",
+                        data={
+                            "arguments": trace.arguments,
+                            "result": trace.result.model_dump(mode="json"),
+                        },
+                    )
+                ],
+                suggested_actions=suggested_actions,
+            )
+        )
+    return findings
 
 
 def create_orchestrator(settings: AppSettings) -> AgentOrchestrator:

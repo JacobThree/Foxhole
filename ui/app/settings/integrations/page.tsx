@@ -1,35 +1,42 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { type FormEvent, useState, useEffect } from "react";
 import { SettingsForm, FormGroup } from "@/components/settings-form";
-import { fetchApi } from "@/lib/api-client";
+import { ReadyResponse, fetchApi, isApiError } from "@/lib/api-client";
 
 export default function IntegrationsSettingsPage() {
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<ReadyResponse["settings"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // We fetch the current status from /readyz to know what is enabled
   useEffect(() => {
-    fetchApi<any>("/readyz")
+    fetchApi<ReadyResponse>("/readyz")
       .then((data) => {
         setSettings(data.settings);
         setLoading(false);
       })
       .catch((err) => {
-        setError(err.message);
+        if (isApiError(err) && err.status === 401) {
+          setError("Session expired. Open General settings and sign in again.");
+        } else if (isApiError(err) && err.status === 503) {
+          setError("Backend is not ready. Check API token and Redis settings.");
+        } else {
+          setError(err instanceof Error ? err.message : "Error loading settings.");
+        }
         setLoading(false);
       });
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent, integrationName: string) => {
+  const handleSubmit = async (e: FormEvent, integrationName: string) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
-    const updates: Record<string, any> = {};
+    const updates: Record<string, string | boolean> = {};
     
     // Convert form data to updates object
     formData.forEach((value, key) => {
       // Checkboxes send "on" or are missing. We'll handle checkboxes explicitly.
+      if (typeof value !== "string") return;
       if (value === "") return; // Don't send empty strings for secrets
       updates[key] = value;
     });
@@ -39,14 +46,15 @@ export default function IntegrationsSettingsPage() {
     updates[enabledKey] = formData.get(enabledKey) === "on";
 
     try {
-      const response = await fetchApi<any>("/settings", {
+      const response = await fetchApi<ReadyResponse["settings"]>("/settings", {
         method: "PATCH",
         body: JSON.stringify({ updates }),
       });
       setSettings(response);
       alert(`${integrationName} settings saved successfully!`);
-    } catch (err: any) {
-      alert(`Failed to save: ${err.message}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "unknown error";
+      alert(`Failed to save: ${message}`);
     }
   };
 

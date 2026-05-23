@@ -64,5 +64,7 @@ def test_orchestrator_runs_tool_calls_through_registry() -> None:
 
     assert len(response.tool_traces) == 1
     assert response.tool_traces[0].tool_name == "diagnose_service"
+    assert response.budget.tool_call_count == 1
+    assert response.findings[0].evidence[0].data["result"]["data"]["service"] == "plex"
     assert "Observed tool output" in response.answer
     assert "Model inference" in response.answer

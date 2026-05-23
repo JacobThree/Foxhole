@@ -1,11 +1,17 @@
 from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from redis import asyncio as redis_async
 
 from agent import __version__
-from agent.auth import require_bearer_token
+from agent.auth import (
+    AuthSessionResponse,
+    login_with_bearer_token,
+    logout_session,
+    require_bearer_token,
+)
 from agent.orchestrator import AgentOrchestrator, create_orchestrator
 from agent.settings import AppSettings, get_settings
 from schemas.python.chat import ChatRequest, ChatResponse
@@ -27,6 +33,13 @@ app = FastAPI(
     title="Foxhole",
     version=__version__,
     description="Read-only-first homelab diagnostic agent.",
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_settings().ui_allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -53,6 +66,20 @@ def get_chat_orchestrator(
 @app.get("/healthz", response_model=HealthResponse)
 async def healthz() -> HealthResponse:
     return HealthResponse(status="ok", service="foxhole", version=__version__)
+
+
+@app.post("/auth/login", response_model=AuthSessionResponse)
+async def auth_login(
+    session: Annotated[AuthSessionResponse, Depends(login_with_bearer_token)],
+) -> AuthSessionResponse:
+    return session
+
+
+@app.post("/auth/logout", response_model=AuthSessionResponse)
+async def auth_logout(
+    session: Annotated[AuthSessionResponse, Depends(logout_session)],
+) -> AuthSessionResponse:
+    return session
 
 
 @app.get("/readyz", response_model=ReadyResponse)

@@ -1,14 +1,32 @@
-import { AlertTriangle, Check, X } from 'lucide-react';
+"use client";
+
+import { type FormEvent, useState } from 'react';
+import { AlertTriangle, Check } from 'lucide-react';
 
 interface ConfirmationPanelProps {
   title: string;
   description: string;
   targetInfo: string;
-  onApprove: () => void;
-  onCancel: () => void;
+  expectedToken?: string | null;
+  onConfirm: (token: string) => void;
+  disabled?: boolean;
 }
 
-export function ConfirmationPanel({ title, description, targetInfo, onApprove, onCancel }: ConfirmationPanelProps) {
+export function ConfirmationPanel({
+  title,
+  description,
+  targetInfo,
+  expectedToken,
+  onConfirm,
+  disabled = false,
+}: ConfirmationPanelProps) {
+  const [token, setToken] = useState('');
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onConfirm(token.trim());
+  };
+
   return (
     <div className="bg-amber-950/30 border border-amber-900/50 rounded-lg p-5 my-4">
       <div className="flex items-start gap-3">
@@ -19,22 +37,29 @@ export function ConfirmationPanel({ title, description, targetInfo, onApprove, o
           <div className="bg-black/40 p-3 rounded text-sm font-mono text-slate-300 mb-4 border border-amber-900/30">
             {targetInfo}
           </div>
-          <div className="flex items-center gap-3">
+          {expectedToken && (
+            <div className="mb-3 text-xs text-amber-200">
+              Confirmation token: <span className="font-mono">{expectedToken}</span>
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input
+              type="text"
+              value={token}
+              onChange={(event) => setToken(event.target.value)}
+              className="min-w-0 flex-1 rounded border border-amber-900/50 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
+              placeholder="Paste confirmation token"
+              disabled={disabled}
+            />
             <button
-              onClick={onApprove}
-              className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded transition-colors text-sm font-medium"
+              type="submit"
+              disabled={disabled || token.trim().length === 0}
+              className="flex items-center justify-center gap-2 rounded bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-500 disabled:cursor-not-allowed disabled:bg-amber-900 disabled:text-amber-200"
             >
               <Check size={16} />
-              Approve Action
+              Resubmit
             </button>
-            <button
-              onClick={onCancel}
-              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded transition-colors text-sm font-medium border border-slate-700"
-            >
-              <X size={16} />
-              Cancel
-            </button>
-          </div>
+          </form>
         </div>
       </div>
     </div>

@@ -2,13 +2,18 @@ import { CheckCircle2, Clock, XCircle, AlertCircle } from 'lucide-react';
 
 interface ToolCallCardProps {
   toolName: string;
-  arguments: string;
+  arguments: unknown;
   status: 'running' | 'success' | 'error' | 'awaiting_confirmation';
   duration?: string;
-  result?: string;
+  result?: unknown;
 }
 
 export function ToolCallCard({ toolName, arguments: args, status, duration, result }: ToolCallCardProps) {
+  const formatJson = (value: unknown) => {
+    if (typeof value === 'string') return value;
+    return JSON.stringify(value, null, 2);
+  };
+
   const getStatusIcon = () => {
     switch (status) {
       case 'running':
@@ -32,11 +37,11 @@ export function ToolCallCard({ toolName, arguments: args, status, duration, resu
         {duration && <span className="text-slate-500">{duration}</span>}
       </div>
       <div className="bg-slate-950 p-2 rounded border border-slate-800 text-slate-300 mb-2 whitespace-pre-wrap">
-        {args}
+        {formatJson(args)}
       </div>
-      {result && (
+      {result !== undefined && result !== null && (
         <div className="mt-2 border-t border-slate-800 pt-2 text-slate-400 whitespace-pre-wrap">
-          {result}
+          {formatJson(result)}
         </div>
       )}
     </div>

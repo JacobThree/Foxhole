@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from schemas.python.chat import AgentBudgetMetadata, DiagnosticFinding
+
 
 def get_utc_now() -> str:
     return datetime.now(UTC).isoformat()
@@ -22,3 +24,5 @@ class Event(BaseModel):
     payload_summary: str
     correlation_id: str | None = None
     data: dict[str, Any] = Field(default_factory=dict)
+    findings: list[DiagnosticFinding] = Field(default_factory=list)
+    budget: AgentBudgetMetadata | None = None
