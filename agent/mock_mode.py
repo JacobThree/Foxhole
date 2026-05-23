@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Any
 
 
 class MockMode:
@@ -14,7 +15,7 @@ class MockMode:
         return os.environ.get("FOXHOLE_MOCK_MODE") == "1"
 
     @staticmethod
-    def get_mock_data(domain: str) -> dict:
+    def get_mock_data(domain: str) -> dict[str, Any]:
         fixture_path = os.path.join(
             os.path.dirname(__file__), 
             "..", "tests", "fixtures", "mock-data.json"
@@ -22,6 +23,9 @@ class MockMode:
         try:
             with open(fixture_path) as f:
                 data = json.load(f)
-                return data.get(domain, {})
+                result = data.get(domain, {})
+                if isinstance(result, dict):
+                    return result
+                return {}
         except FileNotFoundError:
             return {}
