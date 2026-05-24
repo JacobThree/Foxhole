@@ -13,3 +13,8 @@ build/
 htmlcov/
 .coverage
 
+# Local planning and research notes
+FoxHole reseach.md
+implementation-plan.md
+idea.md
+rules/
