@@ -7,6 +7,7 @@ from typing import Any
 from redis.asyncio import Redis
 
 from agent.db.repositories import EventRepository
+from agent.event_bus import event_bus
 from agent.mock_mode import MockMode
 from agent.settings import get_settings
 from schemas.python.events import CheckSummary, Event, ScheduledCheckResult
@@ -23,10 +24,15 @@ async def get_redis() -> Any:
 
 
 async def store_event(event: Event) -> None:
+    settings = get_settings()
     try:
         EventRepository().store_event(event)
     except Exception as e:
         logger.error(f"Failed to store event to SQLite: {e}")
+
+    if settings.runtime_mode == "single":
+        event_bus.publish(event)
+        return
 
     try:
         redis = await get_redis()
@@ -80,6 +86,9 @@ async def get_recent_events(limit: int = 50) -> list[Event]:
         if mock_events:
             return mock_events
     durable_events = EventRepository().recent_events(limit=limit)
+    if get_settings().runtime_mode == "single":
+        return durable_events
+
     try:
         redis = await get_redis()
         # XREVRANGE to get newest first

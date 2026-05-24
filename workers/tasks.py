@@ -4,6 +4,7 @@ import asyncio
 import logging
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -43,52 +44,70 @@ from workers.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class ScheduledCheckDefinition:
+    name: str
+    source: str
+    check_fn: CallableCheck
+    interval_seconds: int
+
+
+def scheduled_check_definitions() -> tuple[ScheduledCheckDefinition, ...]:
+    return SCHEDULED_CHECKS
+
+
+def run_scheduled_check(check_name: str) -> ScheduledCheckResult:
+    definition = _scheduled_check_by_name(check_name)
+    return _run_check(definition.name, definition.source, definition.check_fn)
+
+
 @celery_app.task(name="tasks.check_container_health")  # type: ignore[untyped-decorator]
 def check_container_health() -> dict[str, Any]:
     logger.info("Checking container health")
-    return _run_check("container_health", "docker", _check_container_health).model_dump(
-        mode="json"
-    )
+    return run_scheduled_check("container_health").model_dump(mode="json")
 
 
 @celery_app.task(name="tasks.check_storage_thresholds")  # type: ignore[untyped-decorator]
 def check_storage_thresholds() -> dict[str, Any]:
     logger.info("Checking storage thresholds")
-    return _run_check("storage_thresholds", "storage", _check_storage_thresholds).model_dump(
-        mode="json"
-    )
+    return run_scheduled_check("storage_thresholds").model_dump(mode="json")
 
 
 @celery_app.task(name="tasks.check_arr_imports")  # type: ignore[untyped-decorator]
 def check_arr_imports() -> dict[str, Any]:
     logger.info("Checking *Arr imports")
-    return _run_check("arr_imports", "arr", _check_arr_imports).model_dump(mode="json")
+    return run_scheduled_check("arr_imports").model_dump(mode="json")
 
 
 @celery_app.task(name="tasks.check_plex_db_health")  # type: ignore[untyped-decorator]
 def check_plex_db_health() -> dict[str, Any]:
     logger.info("Checking Plex DB health")
-    return _run_check("plex_db_health", "plex", _check_plex_db_health).model_dump(mode="json")
+    return run_scheduled_check("plex_db_health").model_dump(mode="json")
 
 
 @celery_app.task(name="tasks.scan_rogue_macs")  # type: ignore[untyped-decorator]
 def scan_rogue_macs() -> dict[str, Any]:
     logger.info("Scanning for rogue MACs")
-    return _run_check("rogue_macs", "network", _scan_rogue_macs).model_dump(mode="json")
+    return run_scheduled_check("rogue_macs").model_dump(mode="json")
 
 
 @celery_app.task(name="tasks.check_uptime_kuma_monitors")  # type: ignore[untyped-decorator]
 def check_uptime_kuma_monitors() -> dict[str, Any]:
     logger.info("Checking Uptime Kuma monitors")
-    return _run_check(
-        "uptime_kuma_monitors", "uptime_kuma", _check_uptime_kuma_monitors
-    ).model_dump(mode="json")
+    return run_scheduled_check("uptime_kuma_monitors").model_dump(mode="json")
 
 
 @celery_app.task(name="foxhole.retention_prune")  # type: ignore[untyped-decorator]
 def retention_prune() -> dict[str, int]:
     logger.info("Pruning durable history by configured retention policy")
     return prune_durable_history(get_settings())
+
+
+def _scheduled_check_by_name(check_name: str) -> ScheduledCheckDefinition:
+    for definition in SCHEDULED_CHECKS:
+        if definition.name == check_name:
+            return definition
+    raise ValueError(f"Unknown scheduled check: {check_name}")
 
 
 def _run_check(
@@ -690,6 +709,21 @@ def _dns_diagnostics(
                 )
             )
     return evidence, findings
+
+
+SCHEDULED_CHECKS: tuple[ScheduledCheckDefinition, ...] = (
+    ScheduledCheckDefinition("container_health", "docker", _check_container_health, 5 * 60),
+    ScheduledCheckDefinition("storage_thresholds", "storage", _check_storage_thresholds, 60 * 60),
+    ScheduledCheckDefinition("arr_imports", "arr", _check_arr_imports, 15 * 60),
+    ScheduledCheckDefinition("plex_db_health", "plex", _check_plex_db_health, 24 * 60 * 60),
+    ScheduledCheckDefinition("rogue_macs", "network", _scan_rogue_macs, 15 * 60),
+    ScheduledCheckDefinition(
+        "uptime_kuma_monitors",
+        "uptime_kuma",
+        _check_uptime_kuma_monitors,
+        5 * 60,
+    ),
+)
 
 
 def _emit_check_result(result: ScheduledCheckResult) -> None:

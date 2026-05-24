@@ -30,16 +30,16 @@ Foxhole is early software. The backend, worker checks, durable history, authenti
 
 The default path is Stage 1. Worker diagnostics are read-only and should never perform mutations.
 
-## Quick Start: Backend Stack
+## Quick Start: Self-Hosted Stack
 
-The included Compose stack runs:
+The included Compose stack runs the default single-process Foxhole app:
 
 - Foxhole dashboard and FastAPI backend on `127.0.0.1:8000`
-- Celery worker and beat scheduler
-- Redis
+- In-process scheduled diagnostics
+- SQLite durable history
 - Internal read-only Docker socket proxy
 
-Flower is available as an optional debug profile on `127.0.0.1:5555`.
+Redis, Celery worker, and Celery beat remain available through the optional `distributed` profile. Flower is available as an optional debug profile on `127.0.0.1:5555`.
 
 Durable history is written to `iac/compose/data/foxhole.db` on the host. Settings changed through the dashboard or API are written to `iac/compose/config/foxhole.env`. Back up both files if you care about event history, audits, incidents, check results, and integration settings.
 
@@ -52,16 +52,25 @@ docker compose -f iac/compose/docker-compose.yml up --build
 
 Open `http://127.0.0.1:8000` for the dashboard.
 
+Use the distributed profile only when you want separate Redis/Celery worker processes:
+
+```bash
+FOXHOLE_RUNTIME_MODE=distributed \
+  docker compose -f iac/compose/docker-compose.yml --profile distributed up --build
+```
+
 Start Flower only when debugging Celery:
 
 ```bash
-docker compose -f iac/compose/docker-compose.yml --profile debug up flower
+docker compose -f iac/compose/docker-compose.yml --profile distributed --profile debug up flower
 ```
 
 Minimum required setting:
 
 ```env
 FOXHOLE_API_BEARER_TOKEN=change-me
+FOXHOLE_RUNTIME_MODE=single
+FOXHOLE_SCHEDULER_ENABLED=true
 FOXHOLE_SESSION_COOKIE_SECURE=false
 ```
 

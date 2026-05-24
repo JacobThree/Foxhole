@@ -100,6 +100,9 @@ class AppSettings(BaseSettings):
     ui_allowed_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
     )
+    runtime_mode: Literal["single", "distributed"] = "single"
+    scheduler_enabled: bool = True
+    scheduler_job_timeout_seconds: float = Field(default=300, ge=1, le=3600)
     redis_url: str = "redis://localhost:6379/0"
     database_path: str = "/tmp/foxhole/foxhole.db"
     config_env_path: str | None = None
@@ -499,6 +502,8 @@ class AppSettings(BaseSettings):
     def redacted_summary(self) -> dict[str, Any]:
         return {
             "environment": self.environment,
+            "runtime_mode": self.runtime_mode,
+            "scheduler_enabled": self.scheduler_enabled,
             "api_auth_configured": self.api_auth_configured,
             "redis_url": redact_url(self.redis_url),
             "database_path": self.database_path,

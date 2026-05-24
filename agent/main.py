@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -15,6 +17,7 @@ from agent.auth import (
     require_bearer_token,
 )
 from agent.orchestrator import AgentOrchestrator, create_orchestrator
+from agent.scheduler import create_scheduler
 from agent.settings import AppSettings, get_settings
 from schemas.python.chat import ChatRequest, ChatResponse
 from schemas.python.events import (
@@ -44,10 +47,24 @@ class ReadyResponse(BaseModel):
 STATIC_UI_DIR = Path(__file__).resolve().parent.parent / "ui" / "out"
 
 
+@asynccontextmanager
+async def lifespan(fastapi_app: FastAPI) -> AsyncIterator[None]:
+    scheduler = create_scheduler(get_settings())
+    fastapi_app.state.scheduler = scheduler
+    if scheduler is not None:
+        await scheduler.start()
+    try:
+        yield
+    finally:
+        if scheduler is not None:
+            await scheduler.stop()
+
+
 app = FastAPI(
     title="Foxhole",
     version=__version__,
     description="Read-only-first homelab diagnostic agent.",
+    lifespan=lifespan,
 )
 app.add_middleware(
     CORSMiddleware,
@@ -59,6 +76,9 @@ app.add_middleware(
 
 
 async def check_redis_ready(settings: Annotated[AppSettings, Depends(get_settings)]) -> bool:
+    if settings.runtime_mode == "single":
+        return True
+
     client = redis_async.from_url(  # type: ignore[no-untyped-call]
         settings.redis_url,
         socket_connect_timeout=1,

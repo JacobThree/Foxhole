@@ -11,6 +11,8 @@ services:
         required: false
     environment:
       FOXHOLE_ENVIRONMENT: production
+      FOXHOLE_RUNTIME_MODE: ${FOXHOLE_RUNTIME_MODE:-single}
+      FOXHOLE_SCHEDULER_ENABLED: ${FOXHOLE_SCHEDULER_ENABLED:-true}
       FOXHOLE_REDIS_URL: redis://redis:6379/0
       FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
       FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
@@ -21,8 +23,6 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
-      redis:
-        condition: service_healthy
       docker-socket-proxy:
         condition: service_started
     networks:
@@ -36,6 +36,8 @@ services:
 
   worker:
     image: foxhole:local
+    profiles:
+      - distributed
     env_file:
       - path: .env
         required: false
@@ -43,6 +45,7 @@ services:
         required: false
     environment:
       FOXHOLE_ENVIRONMENT: production
+      FOXHOLE_RUNTIME_MODE: distributed
       FOXHOLE_REDIS_URL: redis://redis:6379/0
       FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
       FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
@@ -62,6 +65,8 @@ services:
 
   beat:
     image: foxhole:local
+    profiles:
+      - distributed
     env_file:
       - path: .env
         required: false
@@ -69,6 +74,7 @@ services:
         required: false
     environment:
       FOXHOLE_ENVIRONMENT: production
+      FOXHOLE_RUNTIME_MODE: distributed
       FOXHOLE_REDIS_URL: redis://redis:6379/0
       FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
       FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
@@ -103,6 +109,9 @@ services:
 
   redis:
     image: redis:7-alpine
+    profiles:
+      - distributed
+      - debug
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis-data:/data

@@ -9,6 +9,7 @@ import pytest
 
 from agent.db.repositories import AuditRepository, prune_durable_history
 from agent.events import (
+    event_bus,
     event_from_check_result,
     get_recent_events,
     latest_check_summaries,
@@ -30,11 +31,14 @@ def isolated_database(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def mock_redis() -> Any:
+def mock_redis(monkeypatch: pytest.MonkeyPatch) -> Any:
+    monkeypatch.setenv("FOXHOLE_RUNTIME_MODE", "distributed")
+    get_settings.cache_clear()
     with patch("agent.events.get_redis") as mock_get_redis:
         mock_redis_instance = AsyncMock()
         mock_get_redis.return_value = mock_redis_instance
         yield mock_redis_instance
+    get_settings.cache_clear()
 
 
 def test_store_event(isolated_database: None, mock_redis: Any) -> None:
@@ -42,6 +46,21 @@ def test_store_event(isolated_database: None, mock_redis: Any) -> None:
     asyncio.run(store_event(event))
     mock_redis.xadd.assert_called_once()
     mock_redis.aclose.assert_called_once()
+
+
+def test_store_event_single_mode_broadcasts_without_redis(isolated_database: None) -> None:
+    event = Event(type="alert", source="system", payload_summary="Live alert")
+
+    async def store_and_receive() -> Event:
+        async with event_bus.subscribe() as queue:
+            await store_event(event)
+            return await asyncio.wait_for(queue.get(), timeout=1)
+
+    received = asyncio.run(store_and_receive())
+    events = asyncio.run(get_recent_events(limit=10))
+
+    assert received.id == event.id
+    assert [stored.id for stored in events] == [event.id]
 
 
 def test_check_result_converts_to_scheduled_check_event() -> None:

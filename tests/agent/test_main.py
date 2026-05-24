@@ -10,6 +10,7 @@ from schemas.python.events import AuditReceipt, Event
 
 def _settings() -> AppSettings:
     return AppSettings(
+        runtime_mode="distributed",
         api_bearer_token=SecretStr("test-token"),
         docker_enabled=True,
         telegram_enabled=True,
@@ -18,6 +19,10 @@ def _settings() -> AppSettings:
         sonarr_base_url="http://sonarr.local:8989",
         sonarr_api_key=SecretStr("sonarr-secret"),
     )
+
+
+def _single_process_settings() -> AppSettings:
+    return _settings().model_copy(update={"runtime_mode": "single"})
 
 
 async def _redis_ready() -> bool:
@@ -107,6 +112,17 @@ def test_readyz_returns_503_when_redis_is_unavailable() -> None:
     app.dependency_overrides.clear()
     assert response.status_code == 503
     assert response.json()["detail"]["checks"]["redis"] is False
+
+
+def test_readyz_does_not_require_redis_in_single_mode() -> None:
+    app.dependency_overrides[get_settings] = _single_process_settings
+    client = TestClient(app)
+
+    response = client.get("/readyz", headers={"Authorization": "Bearer test-token"})
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert response.json()["checks"] == {"settings": True, "redis": True}
 
 
 def test_update_settings_persists_and_clears_cache(monkeypatch) -> None:
