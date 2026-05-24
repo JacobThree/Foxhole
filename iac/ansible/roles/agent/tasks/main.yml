@@ -38,6 +38,14 @@
     group: "{{ foxhole_group }}"
     mode: "0750"
 
+- name: Create data directory
+  ansible.builtin.file:
+    path: "{{ foxhole_install_dir }}/data"
+    state: directory
+    owner: "{{ foxhole_user }}"
+    group: "{{ foxhole_group }}"
+    mode: "0750"
+
 - name: Create config directory
   ansible.builtin.file:
     path: "{{ foxhole_config_dir }}"
@@ -80,6 +88,9 @@
       Group={{ foxhole_group }}
       WorkingDirectory={{ foxhole_install_dir }}
       EnvironmentFile={{ foxhole_config_dir }}/foxhole.env
+      Environment=FOXHOLE_RUNTIME_MODE=single
+      Environment=FOXHOLE_SCHEDULER_ENABLED=true
+      Environment=FOXHOLE_DATABASE_PATH={{ foxhole_install_dir }}/data/foxhole.db
       Environment=FOXHOLE_CONFIG_ENV_PATH={{ foxhole_config_dir }}/foxhole.env
       ExecStart={{ foxhole_install_dir }}/venv/bin/uvicorn agent.main:app --host 0.0.0.0 --port 8000
       Restart=on-failure

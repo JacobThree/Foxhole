@@ -28,6 +28,7 @@ if ! id "${AGENT_USER}" >/dev/null 2>&1; then
 fi
 
 install -d -o "${AGENT_USER}" -g "${AGENT_USER}" -m 0750 "${INSTALL_DIR}"
+install -d -o "${AGENT_USER}" -g "${AGENT_USER}" -m 0750 "${INSTALL_DIR}/data"
 install -d -o root -g "${AGENT_USER}" -m 0770 "${CONFIG_DIR}"
 
 if [[ ! -f "${CONFIG_DIR}/foxhole.env" ]]; then
