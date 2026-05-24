@@ -66,4 +66,38 @@ FOXHOLE_SESSION_COOKIE_SECURE=false
 
 Keep `FOXHOLE_SESSION_COOKIE_SECURE=false` for direct HTTP access to the LXC. Set it to `true` when Foxhole is served through HTTPS.
 
+## Backup And Restore
+
+Back up these paths inside the container:
+
+```text
+/etc/homelab-agent/foxhole.env
+/opt/homelab-agent/data/
+```
+
+The env file contains secrets and UI-edited settings. The data directory contains `foxhole.db` and any SQLite sidecar files. If `FOXHOLE_DATABASE_PATH` is overridden, back up that configured database path instead of `/opt/homelab-agent/data/`.
+
+Create a backup from the Proxmox node:
+
+```bash
+pct exec 240 -- systemctl stop homelab-agent
+pct exec 240 -- tar -C / -czf /tmp/foxhole-backup.tgz etc/homelab-agent/foxhole.env opt/homelab-agent/data
+pct pull 240 /tmp/foxhole-backup.tgz ./foxhole-lxc-240-$(date +%Y%m%d-%H%M%S).tgz
+pct exec 240 -- rm -f /tmp/foxhole-backup.tgz
+pct exec 240 -- systemctl start homelab-agent
+```
+
+Restore to an installed container:
+
+```bash
+pct exec 240 -- systemctl stop homelab-agent
+pct push 240 ./foxhole-lxc-240-YYYYMMDD-HHMMSS.tgz /tmp/foxhole-backup.tgz -perms 0600
+pct exec 240 -- tar -C / -xzf /tmp/foxhole-backup.tgz
+pct exec 240 -- chown -R agent:agent /opt/homelab-agent/data
+pct exec 240 -- chown root:agent /etc/homelab-agent/foxhole.env
+pct exec 240 -- chmod 0660 /etc/homelab-agent/foxhole.env
+pct exec 240 -- rm -f /tmp/foxhole-backup.tgz
+pct exec 240 -- systemctl start homelab-agent
+```
+
 The bootstrap does not require privileged container mode by default. Keep `UNPRIVILEGED=1` unless a future diagnostic tool has a specific, documented need.

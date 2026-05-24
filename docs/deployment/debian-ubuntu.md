@@ -60,4 +60,34 @@ FOXHOLE_SESSION_COOKIE_SECURE=false
 
 Use distributed mode only for advanced installs that intentionally run separate Redis/Celery services. In that case, set `FOXHOLE_RUNTIME_MODE=distributed` and `FOXHOLE_REDIS_URL=...`, then provision Redis, Celery worker, and Celery beat separately.
 
+## Backup And Restore
+
+Back up these paths:
+
+```text
+/etc/homelab-agent/foxhole.env
+/opt/homelab-agent/data/
+```
+
+The env file contains secrets and UI-edited settings. The data directory contains `foxhole.db` and any SQLite sidecar files. If `FOXHOLE_DATABASE_PATH` is overridden, back up that configured database path instead of `/opt/homelab-agent/data/`.
+
+Create a backup on the host:
+
+```bash
+sudo systemctl stop homelab-agent
+sudo tar -C / -czf ./foxhole-systemd-$(date +%Y%m%d-%H%M%S).tgz etc/homelab-agent/foxhole.env opt/homelab-agent/data
+sudo systemctl start homelab-agent
+```
+
+Restore to an installed host:
+
+```bash
+sudo systemctl stop homelab-agent
+sudo tar -C / -xzf ./foxhole-systemd-YYYYMMDD-HHMMSS.tgz
+sudo chown -R agent:agent /opt/homelab-agent/data
+sudo chown root:agent /etc/homelab-agent/foxhole.env
+sudo chmod 0660 /etc/homelab-agent/foxhole.env
+sudo systemctl start homelab-agent
+```
+
 No secrets are stored in the playbook, inventory, or committed env examples.

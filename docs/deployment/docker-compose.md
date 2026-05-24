@@ -35,6 +35,37 @@ curl -H "Authorization: Bearer $FOXHOLE_API_BEARER_TOKEN" http://127.0.0.1:8000/
 
 The backend image builds the Next.js static export and serves it from the FastAPI process. A separate Node.js process is only needed for frontend development.
 
+## Backup And Restore
+
+Back up these host paths:
+
+```text
+iac/compose/data/
+iac/compose/config/
+```
+
+`data/` contains the SQLite database and possible SQLite sidecar files. `config/foxhole.env` contains the bearer token, integration secrets, cookie settings, and any settings changed through the dashboard or API.
+
+Create a backup from the repository root:
+
+```bash
+docker compose -f iac/compose/docker-compose.yml stop
+mkdir -p backups
+tar -C iac/compose -czf backups/foxhole-compose-$(date +%Y%m%d-%H%M%S).tgz data config
+docker compose -f iac/compose/docker-compose.yml up -d
+```
+
+Restore onto a fresh or stopped Compose deployment:
+
+```bash
+docker compose -f iac/compose/docker-compose.yml down
+mkdir -p iac/compose
+tar -C iac/compose -xzf backups/foxhole-compose-YYYYMMDD-HHMMSS.tgz
+docker compose -f iac/compose/docker-compose.yml up --build -d
+```
+
+If `FOXHOLE_DATABASE_PATH` is changed from `/app/data/foxhole.db`, back up the host mount that contains the configured path instead of only `iac/compose/data/`.
+
 ## Distributed Runtime
 
 The distributed profile keeps the older Redis/Celery mode available for advanced installs that want separate API, worker, and beat processes:

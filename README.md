@@ -96,6 +96,8 @@ curl -H "Authorization: Bearer $FOXHOLE_API_BEARER_TOKEN" \
 
 Detailed Compose notes live in [docs/deployment/docker-compose.md](docs/deployment/docker-compose.md).
 
+Back up `iac/compose/data/` and `iac/compose/config/` for Compose installs. For LXC or systemd installs, back up `/opt/homelab-agent/data/` and `/etc/homelab-agent/foxhole.env`. The deployment docs include stop-copy-restore commands for each path.
+
 ## Dashboard UI
 
 The production dashboard is statically exported into the backend image and served by FastAPI. Run the Next.js UI separately only during frontend development:
@@ -158,6 +160,8 @@ See [docs/integrations/homepage-homarr.md](docs/integrations/homepage-homarr.md)
 
 - [Architecture](docs/architecture.md)
 - [Docker Compose deployment](docs/deployment/docker-compose.md)
+- [Debian and Ubuntu deployment](docs/deployment/debian-ubuntu.md)
+- [Proxmox LXC deployment](docs/deployment/proxmox-lxc.md)
 - [Proxmox permissions](docs/deployment/proxmox-permissions.md)
 - [Caddy integration](docs/integrations/caddy.md)
 - [Docker integration](docs/integrations/docker.md)
