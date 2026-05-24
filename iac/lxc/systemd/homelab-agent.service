@@ -9,6 +9,7 @@ User=agent
 Group=agent
 WorkingDirectory=/opt/homelab-agent
 EnvironmentFile=/etc/homelab-agent/foxhole.env
+Environment=FOXHOLE_CONFIG_ENV_PATH=/etc/homelab-agent/foxhole.env
 ExecStart=/opt/homelab-agent/venv/bin/uvicorn agent.main:app --host 0.0.0.0 --port 8000
 Restart=on-failure
 RestartSec=5

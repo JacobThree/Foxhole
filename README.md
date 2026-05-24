@@ -37,13 +37,23 @@ The included Compose stack runs:
 - FastAPI backend on `127.0.0.1:8000`
 - Celery worker and beat scheduler
 - Redis
-- Flower on `127.0.0.1:5555`
 - Internal read-only Docker socket proxy
 
+Flower is available as an optional debug profile on `127.0.0.1:5555`.
+
+Durable history is written to `iac/compose/data/foxhole.db` on the host. Settings changed through the dashboard or API are written to `iac/compose/config/foxhole.env`. Back up both files if you care about event history, audits, incidents, check results, and integration settings.
+
 ```bash
-cp iac/compose/.env.example iac/compose/.env
-$EDITOR iac/compose/.env
+mkdir -p iac/compose/data iac/compose/config
+cp iac/compose/.env.example iac/compose/config/foxhole.env
+$EDITOR iac/compose/config/foxhole.env
 docker compose -f iac/compose/docker-compose.yml up --build
+```
+
+Start Flower only when debugging Celery:
+
+```bash
+docker compose -f iac/compose/docker-compose.yml --profile debug up flower
 ```
 
 Minimum required setting:

@@ -28,10 +28,10 @@ if ! id "${AGENT_USER}" >/dev/null 2>&1; then
 fi
 
 install -d -o "${AGENT_USER}" -g "${AGENT_USER}" -m 0750 "${INSTALL_DIR}"
-install -d -o root -g "${AGENT_USER}" -m 0750 "${CONFIG_DIR}"
+install -d -o root -g "${AGENT_USER}" -m 0770 "${CONFIG_DIR}"
 
 if [[ ! -f "${CONFIG_DIR}/foxhole.env" ]]; then
-  install -o root -g "${AGENT_USER}" -m 0640 /dev/null "${CONFIG_DIR}/foxhole.env"
+  install -o root -g "${AGENT_USER}" -m 0660 /dev/null "${CONFIG_DIR}/foxhole.env"
 fi
 
 if [[ -n "${FOXHOLE_REPO_URL}" ]]; then
@@ -63,4 +63,3 @@ systemctl daemon-reload
 systemctl enable homelab-agent.service
 
 echo "Installed Foxhole service. Configure ${CONFIG_DIR}/foxhole.env, then run: systemctl start homelab-agent"
-

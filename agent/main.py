@@ -136,6 +136,7 @@ class SettingsUpdate(BaseModel):
 async def update_settings_endpoint(
     request: SettingsUpdate,
     _: Annotated[None, Depends(require_bearer_token)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
 ) -> dict[str, Any]:
     from agent.settings import update_env_file
 
@@ -146,7 +147,7 @@ async def update_settings_endpoint(
         else:
             env_updates[f"FOXHOLE_{k.upper()}"] = str(v).lower() if isinstance(v, bool) else str(v)
 
-    update_env_file(env_updates)
+    update_env_file(env_updates, settings=settings)
     get_settings.cache_clear()
 
     # We must also clear the orchestrator tools cache so the updated settings

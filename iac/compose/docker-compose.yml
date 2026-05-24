@@ -7,10 +7,17 @@ services:
     env_file:
       - path: .env
         required: false
+      - path: ./config/foxhole.env
+        required: false
     environment:
       FOXHOLE_ENVIRONMENT: production
       FOXHOLE_REDIS_URL: redis://redis:6379/0
+      FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
+      FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
       FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
+    volumes:
+      - ./data:/app/data
+      - ./config:/config
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -32,10 +39,17 @@ services:
     env_file:
       - path: .env
         required: false
+      - path: ./config/foxhole.env
+        required: false
     environment:
       FOXHOLE_ENVIRONMENT: production
       FOXHOLE_REDIS_URL: redis://redis:6379/0
+      FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
+      FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
       FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
+    volumes:
+      - ./data:/app/data
+      - ./config:/config
     command: ["celery", "-A", "workers.celery_app:celery_app", "worker", "--loglevel=INFO"]
     depends_on:
       redis:
@@ -51,10 +65,17 @@ services:
     env_file:
       - path: .env
         required: false
+      - path: ./config/foxhole.env
+        required: false
     environment:
       FOXHOLE_ENVIRONMENT: production
       FOXHOLE_REDIS_URL: redis://redis:6379/0
+      FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
+      FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
       FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
+    volumes:
+      - ./data:/app/data
+      - ./config:/config
     command: ["celery", "-A", "workers.celery_app:celery_app", "beat", "--loglevel=INFO"]
     depends_on:
       redis:
@@ -67,6 +88,8 @@ services:
 
   flower:
     image: mher/flower:2.0
+    profiles:
+      - debug
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
       FLOWER_PORT: "5555"

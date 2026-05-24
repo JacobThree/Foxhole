@@ -74,8 +74,8 @@ def test_update_settings_persists_and_clears_cache(monkeypatch) -> None:
     # We mock update_env_file to avoid writing to actual .env
     calls = []
 
-    def mock_update_env_file(updates, env_path=".env"):
-        calls.append(updates)
+    def mock_update_env_file(updates, env_path=None, settings=None):
+        calls.append((updates, env_path, settings))
 
     monkeypatch.setattr("agent.settings.update_env_file", mock_update_env_file)
 
@@ -91,9 +91,12 @@ def test_update_settings_persists_and_clears_cache(monkeypatch) -> None:
     )
     assert response.status_code == 200
     assert len(calls) == 1
-    assert calls[0]["FOXHOLE_PLEX_ENABLED"] == "true"
-    assert calls[0]["FOXHOLE_PLEX_BASE_URL"] == "http://new-plex.local"
-    assert calls[0]["FOXHOLE_PLEX_TOKEN"] is None
+    updates, env_path, settings = calls[0]
+    assert updates["FOXHOLE_PLEX_ENABLED"] == "true"
+    assert updates["FOXHOLE_PLEX_BASE_URL"] == "http://new-plex.local"
+    assert updates["FOXHOLE_PLEX_TOKEN"] is None
+    assert env_path is None
+    assert settings.api_auth_configured is True
 
 
 def test_dashboard_summary_returns_read_only_control_plane_state(monkeypatch) -> None:

@@ -38,6 +38,7 @@ The inside-container installer:
 - Creates an unprivileged `agent` service user.
 - Installs `homelab-agent.service` with systemd hardening.
 - Reads runtime configuration from `/etc/homelab-agent/foxhole.env`.
+- Writes API or dashboard settings updates back to `/etc/homelab-agent/foxhole.env`.
 
 Set `FOXHOLE_REPO_URL` when running the installer if the source is not copied into `/tmp/foxhole-src`:
 
@@ -53,4 +54,3 @@ pct exec 240 -- systemctl start homelab-agent
 ```
 
 The bootstrap does not require privileged container mode by default. Keep `UNPRIVILEGED=1` unless a future diagnostic tool has a specific, documented need.
-

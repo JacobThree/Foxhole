@@ -1,6 +1,12 @@
 from pydantic import SecretStr
 
-from agent.settings import AppSettings, get_settings, redact_url
+from agent.settings import (
+    AppSettings,
+    get_settings,
+    redact_url,
+    settings_update_env_path,
+    update_env_file,
+)
 
 
 def test_valid_core_and_optional_integration_config(monkeypatch) -> None:
@@ -73,3 +79,20 @@ def test_secret_redaction_excludes_raw_values() -> None:
 
 def test_redact_url_without_credentials_is_stable() -> None:
     assert redact_url("redis://localhost:6379/0") == "redis://localhost:6379/0"
+
+
+def test_configured_settings_path_is_used_for_updates(tmp_path) -> None:
+    env_path = tmp_path / "config" / "foxhole.env"
+    settings = AppSettings(config_env_path=str(env_path))
+
+    update_env_file(
+        {
+            "FOXHOLE_PLEX_ENABLED": "true",
+            "FOXHOLE_PLEX_TOKEN": "secret",
+        },
+        settings=settings,
+    )
+    update_env_file({"FOXHOLE_PLEX_TOKEN": None}, settings=settings)
+
+    assert settings_update_env_path(settings) == str(env_path)
+    assert env_path.read_text() == "FOXHOLE_PLEX_ENABLED=true\n"

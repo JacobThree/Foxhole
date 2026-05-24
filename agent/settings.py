@@ -5,6 +5,13 @@ from typing import Any, Literal
 from pydantic import AnyHttpUrl, Field, SecretStr, field_serializer
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+CONFIG_ENV_FILE_CANDIDATES = (
+    ".env",
+    "/config/foxhole.env",
+    "/etc/homelab-agent/foxhole.env",
+    "/etc/homelab-agent/config.env",
+)
+
 
 class IntegrationSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
@@ -80,7 +87,7 @@ class UnboundSettings(BaseSettings):
 class AppSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="FOXHOLE_",
-        env_file=(".env", "/etc/homelab-agent/foxhole.env", "/etc/homelab-agent/config.env"),
+        env_file=CONFIG_ENV_FILE_CANDIDATES,
         env_nested_delimiter="__",
         extra="ignore",
     )
@@ -95,6 +102,7 @@ class AppSettings(BaseSettings):
     )
     redis_url: str = "redis://localhost:6379/0"
     database_path: str = "/tmp/foxhole/foxhole.db"
+    config_env_path: str | None = None
     mock_mode: bool = False
     widget_enabled: bool = False
     widget_token: SecretStr | None = None
@@ -530,7 +538,27 @@ def redact_url(value: str) -> str:
     return f"{scheme}://********@{host}" if scheme else f"********@{host}"
 
 
-def update_env_file(updates: dict[str, str | None], env_path: str = ".env") -> None:
+def settings_update_env_path(settings: AppSettings | None = None) -> str:
+    configured_path = (settings or get_settings()).config_env_path
+    if configured_path:
+        return configured_path
+
+    for candidate in CONFIG_ENV_FILE_CANDIDATES:
+        if os.path.exists(candidate):
+            return candidate
+    return ".env"
+
+
+def update_env_file(
+    updates: dict[str, str | None],
+    env_path: str | None = None,
+    settings: AppSettings | None = None,
+) -> None:
+    env_path = env_path or settings_update_env_path(settings)
+    env_dir = os.path.dirname(env_path)
+    if env_dir:
+        os.makedirs(env_dir, exist_ok=True)
+
     lines = []
     if os.path.exists(env_path):
         with open(env_path) as f:
