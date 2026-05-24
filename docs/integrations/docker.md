@@ -10,7 +10,14 @@ Foxhole talks to Docker through `tecnativa/docker-socket-proxy`, not a mounted D
 Configure the proxy URL with:
 
 ```bash
+FOXHOLE_DOCKER_ENABLED=true
 FOXHOLE_DOCKER_SOCKET_PROXY_URL=tcp://docker-socket-proxy:2375
+```
+
+For Compose installs, start the optional read-only proxy with:
+
+```bash
+docker compose -f iac/compose/docker-compose.yml --profile docker up -d
 ```
 
 The socket proxy should return `403` for blocked endpoints. Foxhole reports those as permission errors instead of crashing.

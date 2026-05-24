@@ -1,9 +1,6 @@
 services:
-  api:
-    build:
-      context: ../..
-      dockerfile: Dockerfile
-    image: foxhole:local
+  foxhole:
+    image: ${FOXHOLE_IMAGE:-ghcr.io/jacobthree/foxhole}:${FOXHOLE_IMAGE_TAG:-latest}
     env_file:
       - path: .env
         required: false
@@ -11,9 +8,8 @@ services:
         required: false
     environment:
       FOXHOLE_ENVIRONMENT: production
-      FOXHOLE_RUNTIME_MODE: ${FOXHOLE_RUNTIME_MODE:-single}
+      FOXHOLE_RUNTIME_MODE: single
       FOXHOLE_SCHEDULER_ENABLED: ${FOXHOLE_SCHEDULER_ENABLED:-true}
-      FOXHOLE_REDIS_URL: redis://redis:6379/0
       FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
       FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
       FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
@@ -22,109 +18,20 @@ services:
       - ./config:/config
     ports:
       - "127.0.0.1:8000:8000"
-    depends_on:
-      docker-socket-proxy:
-        condition: service_started
     networks:
       - app
       - socket-proxy
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
       interval: 30s
       timeout: 5s
       retries: 3
 
-  worker:
-    image: foxhole:local
-    profiles:
-      - distributed
-    env_file:
-      - path: .env
-        required: false
-      - path: ./config/foxhole.env
-        required: false
-    environment:
-      FOXHOLE_ENVIRONMENT: production
-      FOXHOLE_RUNTIME_MODE: distributed
-      FOXHOLE_REDIS_URL: redis://redis:6379/0
-      FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
-      FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
-      FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
-    volumes:
-      - ./data:/app/data
-      - ./config:/config
-    command: ["celery", "-A", "workers.celery_app:celery_app", "worker", "--loglevel=INFO"]
-    depends_on:
-      redis:
-        condition: service_healthy
-      api:
-        condition: service_healthy
-    networks:
-      - app
-      - socket-proxy
-
-  beat:
-    image: foxhole:local
-    profiles:
-      - distributed
-    env_file:
-      - path: .env
-        required: false
-      - path: ./config/foxhole.env
-        required: false
-    environment:
-      FOXHOLE_ENVIRONMENT: production
-      FOXHOLE_RUNTIME_MODE: distributed
-      FOXHOLE_REDIS_URL: redis://redis:6379/0
-      FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
-      FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
-      FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
-    volumes:
-      - ./data:/app/data
-      - ./config:/config
-    command: ["celery", "-A", "workers.celery_app:celery_app", "beat", "--loglevel=INFO"]
-    depends_on:
-      redis:
-        condition: service_healthy
-      api:
-        condition: service_healthy
-    networks:
-      - app
-      - socket-proxy
-
-  flower:
-    image: mher/flower:2.0
-    profiles:
-      - debug
-    environment:
-      CELERY_BROKER_URL: redis://redis:6379/0
-      FLOWER_PORT: "5555"
-    ports:
-      - "127.0.0.1:5555:5555"
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - app
-
-  redis:
-    image: redis:7-alpine
-    profiles:
-      - distributed
-      - debug
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - redis-data:/data
-    networks:
-      - app
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
   docker-socket-proxy:
     image: tecnativa/docker-socket-proxy:0.3
+    profiles:
+      - docker
     environment:
       CONTAINERS: "1"
       EVENTS: "1"
@@ -155,9 +62,6 @@ services:
     tmpfs:
       - /run
     restart: unless-stopped
-
-volumes:
-  redis-data:
 
 networks:
   app:

@@ -45,3 +45,5 @@ jobs:
       - name: Validate Compose config
         run: docker compose -f iac/compose/docker-compose.yml config
 
+      - name: Validate distributed Compose config
+        run: docker compose -f iac/compose/docker-compose.distributed.yml config

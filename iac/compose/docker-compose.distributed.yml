@@ -1,0 +1,161 @@
+services:
+  foxhole:
+    image: ${FOXHOLE_IMAGE:-ghcr.io/jacobthree/foxhole}:${FOXHOLE_IMAGE_TAG:-latest}
+    env_file:
+      - path: .env
+        required: false
+      - path: ./config/foxhole.env
+        required: false
+    environment:
+      FOXHOLE_ENVIRONMENT: production
+      FOXHOLE_RUNTIME_MODE: distributed
+      FOXHOLE_SCHEDULER_ENABLED: "false"
+      FOXHOLE_REDIS_URL: redis://redis:6379/0
+      FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
+      FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
+      FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
+    volumes:
+      - ./data:/app/data
+      - ./config:/config
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - app
+      - socket-proxy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    image: ${FOXHOLE_IMAGE:-ghcr.io/jacobthree/foxhole}:${FOXHOLE_IMAGE_TAG:-latest}
+    env_file:
+      - path: .env
+        required: false
+      - path: ./config/foxhole.env
+        required: false
+    environment:
+      FOXHOLE_ENVIRONMENT: production
+      FOXHOLE_RUNTIME_MODE: distributed
+      FOXHOLE_REDIS_URL: redis://redis:6379/0
+      FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
+      FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
+      FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
+    volumes:
+      - ./data:/app/data
+      - ./config:/config
+    command: ["celery", "-A", "workers.celery_app:celery_app", "worker", "--loglevel=INFO"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      foxhole:
+        condition: service_healthy
+    networks:
+      - app
+      - socket-proxy
+    restart: unless-stopped
+
+  beat:
+    image: ${FOXHOLE_IMAGE:-ghcr.io/jacobthree/foxhole}:${FOXHOLE_IMAGE_TAG:-latest}
+    env_file:
+      - path: .env
+        required: false
+      - path: ./config/foxhole.env
+        required: false
+    environment:
+      FOXHOLE_ENVIRONMENT: production
+      FOXHOLE_RUNTIME_MODE: distributed
+      FOXHOLE_REDIS_URL: redis://redis:6379/0
+      FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
+      FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
+      FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
+    volumes:
+      - ./data:/app/data
+      - ./config:/config
+    command: ["celery", "-A", "workers.celery_app:celery_app", "beat", "--loglevel=INFO"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      foxhole:
+        condition: service_healthy
+    networks:
+      - app
+      - socket-proxy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  flower:
+    image: mher/flower:2.0
+    profiles:
+      - debug
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      FLOWER_PORT: "5555"
+    ports:
+      - "127.0.0.1:5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - app
+
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3
+    profiles:
+      - docker
+    environment:
+      CONTAINERS: "1"
+      EVENTS: "1"
+      IMAGES: "1"
+      INFO: "1"
+      NETWORKS: "1"
+      VERSION: "1"
+      POST: "0"
+      AUTH: "0"
+      BUILD: "0"
+      COMMIT: "0"
+      CONFIGS: "0"
+      DISTRIBUTION: "0"
+      EXEC: "0"
+      PLUGINS: "0"
+      SECRETS: "0"
+      SERVICES: "0"
+      SESSION: "0"
+      SWARM: "0"
+      SYSTEM: "0"
+      TASKS: "0"
+      VOLUMES: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket-proxy
+    read_only: true
+    tmpfs:
+      - /run
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+
+networks:
+  app:
+  socket-proxy:
+    internal: true

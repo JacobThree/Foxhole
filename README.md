@@ -6,7 +6,7 @@ The project is built around opt-in integrations: if you do not enable an integra
 
 ## Current Status
 
-Foxhole is early software. The backend, worker checks, durable history, authenticated browser session flow, and dashboard UI exist, but there is no published container image or release package yet. The Docker Compose stack builds the API locally from this repository.
+Foxhole is early software. The backend, worker checks, durable history, authenticated browser session flow, and dashboard UI exist. Tagged releases publish a production image to `ghcr.io/jacobthree/foxhole`; contributors can still build the same image locally from this repository.
 
 ## What Foxhole Can Inspect
 
@@ -32,14 +32,14 @@ The default path is Stage 1. Worker diagnostics are read-only and should never p
 
 ## Quick Start: Self-Hosted Stack
 
-The included Compose stack runs the default single-process Foxhole app:
+The included Compose stack runs the default single-process Foxhole app from the GHCR image:
 
 - Foxhole dashboard and FastAPI backend on `127.0.0.1:8000`
 - In-process scheduled diagnostics
 - SQLite durable history
-- Internal read-only Docker socket proxy
+- Optional internal read-only Docker socket proxy
 
-Redis, Celery worker, and Celery beat remain available through the optional `distributed` profile. Flower is available as an optional debug profile on `127.0.0.1:5555`.
+Redis, Celery worker, and Celery beat remain available through the separate distributed Compose file. Flower is available as an optional debug profile on `127.0.0.1:5555`.
 
 Durable history is written to `iac/compose/data/foxhole.db` on the host. Settings changed through the dashboard or API are written to `iac/compose/config/foxhole.env`. Back up both files if you care about event history, audits, incidents, check results, and integration settings.
 
@@ -47,22 +47,34 @@ Durable history is written to `iac/compose/data/foxhole.db` on the host. Setting
 mkdir -p iac/compose/data iac/compose/config
 cp iac/compose/.env.example iac/compose/config/foxhole.env
 $EDITOR iac/compose/config/foxhole.env
-docker compose -f iac/compose/docker-compose.yml up --build
+docker compose -f iac/compose/docker-compose.yml up -d
 ```
 
 Open `http://127.0.0.1:8000` for the dashboard.
 
-Use the distributed profile only when you want separate Redis/Celery worker processes:
+Enable Docker diagnostics only when you want Foxhole to inspect local containers:
 
 ```bash
-FOXHOLE_RUNTIME_MODE=distributed \
-  docker compose -f iac/compose/docker-compose.yml --profile distributed up --build
+docker compose -f iac/compose/docker-compose.yml --profile docker up -d
+```
+
+Use the distributed Compose file only when you want separate Redis/Celery worker processes:
+
+```bash
+docker compose -f iac/compose/docker-compose.distributed.yml up -d
 ```
 
 Start Flower only when debugging Celery:
 
 ```bash
-docker compose -f iac/compose/docker-compose.yml --profile distributed --profile debug up flower
+docker compose -f iac/compose/docker-compose.distributed.yml --profile debug up flower
+```
+
+For contributor builds, build a local image and point Compose at it:
+
+```bash
+docker build -t foxhole:local .
+FOXHOLE_IMAGE=foxhole FOXHOLE_IMAGE_TAG=local docker compose -f iac/compose/docker-compose.yml up -d
 ```
 
 Minimum required setting:
@@ -191,5 +203,4 @@ pnpm build
 
 - No broad autonomous remediation.
 - No direct writable Docker socket access in the default Compose stack.
-- No claim of a published production image until releases are actually published.
 - No MCP server exposure yet; manifests are groundwork for that future adapter.
