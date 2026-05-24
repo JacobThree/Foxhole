@@ -1,7 +1,9 @@
+from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from redis import asyncio as redis_async
 
@@ -37,6 +39,9 @@ class ReadyResponse(BaseModel):
     status: str
     checks: dict[str, bool]
     settings: dict[str, Any]
+
+
+STATIC_UI_DIR = Path(__file__).resolve().parent.parent / "ui" / "out"
 
 
 app = FastAPI(
@@ -323,3 +328,55 @@ async def get_incident(
     if incident is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
     return incident
+
+
+def _static_ui_file(full_path: str) -> Path | None:
+    if not STATIC_UI_DIR.is_dir():
+        return None
+
+    requested = full_path.strip("/")
+    if ".." in Path(requested).parts:
+        return None
+
+    candidates: list[Path] = []
+    if requested == "":
+        candidates.append(STATIC_UI_DIR / "index.html")
+    else:
+        raw_path = STATIC_UI_DIR / requested
+        candidates.extend(
+            [
+                raw_path,
+                raw_path / "index.html",
+                STATIC_UI_DIR / f"{requested}.html",
+            ]
+        )
+
+    for candidate in candidates:
+        try:
+            candidate.relative_to(STATIC_UI_DIR)
+        except ValueError:
+            continue
+        if candidate.is_file():
+            return candidate
+
+    if requested.startswith("_next/") or Path(requested).suffix:
+        return None
+
+    fallback = STATIC_UI_DIR / "index.html"
+    return fallback if fallback.is_file() else None
+
+
+@app.get("/", include_in_schema=False)
+async def serve_static_ui_root() -> FileResponse:
+    static_file = _static_ui_file("")
+    if static_file is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dashboard not built")
+    return FileResponse(static_file)
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_static_ui(full_path: str) -> FileResponse:
+    static_file = _static_ui_file(full_path)
+    if static_file is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    return FileResponse(static_file)

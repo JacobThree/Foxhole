@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { AlertCircle, AlertTriangle, ArrowLeft, Info } from "lucide-react";
-import { fetchApi, IncidentDetail, isApiError } from "@/lib/api-client";
+import { fetchApi, type IncidentDetail, isApiError } from "@/lib/api-client";
 
 type LoadState = "loading" | "ready" | "unauthenticated" | "missing" | "error";
+type LoadResult = {
+  incidentId: string;
+  state: Exclude<LoadState, "loading">;
+  detail: IncidentDetail | null;
+  error: string | null;
+};
 
 function formatTimestamp(value: string) {
   const date = new Date(value);
@@ -24,33 +30,47 @@ function severityIcon(severity: string) {
   return <Info className="text-blue-400" size={18} />;
 }
 
-export default function IncidentDetailPage() {
-  const params = useParams<{ id: string }>();
-  const incidentId = useMemo(() => decodeURIComponent(params.id), [params.id]);
-  const [detail, setDetail] = useState<IncidentDetail | null>(null);
-  const [state, setState] = useState<LoadState>("loading");
-  const [error, setError] = useState<string | null>(null);
+function IncidentDetailContent() {
+  const searchParams = useSearchParams();
+  const incidentId = searchParams.get("id") ?? "";
+  const [result, setResult] = useState<LoadResult | null>(null);
+  const isCurrentResult = result?.incidentId === incidentId;
+  const visibleState: LoadState = !incidentId
+    ? "missing"
+    : isCurrentResult
+      ? result.state
+      : "loading";
+  const detail = isCurrentResult ? result.detail : null;
+  const error = isCurrentResult ? result.error : null;
 
   useEffect(() => {
+    if (!incidentId) {
+      return;
+    }
+
     let cancelled = false;
+
     fetchApi<IncidentDetail>(`/incidents/${encodeURIComponent(incidentId)}`)
       .then((data) => {
         if (cancelled) return;
-        setDetail(data);
-        setState("ready");
+        setResult({ incidentId, state: "ready", detail: data, error: null });
       })
       .catch((err) => {
         if (cancelled) return;
         if (isApiError(err) && err.status === 401) {
-          setState("unauthenticated");
+          setResult({ incidentId, state: "unauthenticated", detail: null, error: null });
           return;
         }
         if (isApiError(err) && err.status === 404) {
-          setState("missing");
+          setResult({ incidentId, state: "missing", detail: null, error: null });
           return;
         }
-        setError(err instanceof Error ? err.message : "Could not load incident.");
-        setState("error");
+        setResult({
+          incidentId,
+          state: "error",
+          detail: null,
+          error: err instanceof Error ? err.message : "Could not load incident.",
+        });
       });
 
     return () => {
@@ -71,28 +91,28 @@ export default function IncidentDetailPage() {
         <h1 className="text-3xl font-bold">Incident Timeline</h1>
       </div>
 
-      {state === "loading" && (
+      {visibleState === "loading" && (
         <div className="rounded-lg border border-slate-800 bg-slate-900 p-6 text-sm text-slate-400">
           Loading incident...
         </div>
       )}
-      {state === "unauthenticated" && (
+      {visibleState === "unauthenticated" && (
         <div className="rounded-lg border border-yellow-900/60 bg-yellow-950/30 p-6 text-sm text-yellow-200">
           Sign in from Settings before viewing incidents.
         </div>
       )}
-      {state === "missing" && (
+      {visibleState === "missing" && (
         <div className="rounded-lg border border-slate-800 bg-slate-900 p-6 text-sm text-slate-400">
           Incident not found.
         </div>
       )}
-      {state === "error" && (
+      {visibleState === "error" && (
         <div className="rounded-lg border border-red-900/60 bg-red-950/30 p-6 text-sm text-red-200">
           {error}
         </div>
       )}
 
-      {state === "ready" && detail && (
+      {visibleState === "ready" && detail && (
         <div className="space-y-6">
           <section className="rounded-lg border border-slate-800 bg-slate-900 p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -131,7 +151,7 @@ export default function IncidentDetailPage() {
                       <div>
                         <div className="font-medium text-slate-100">{entry.summary}</div>
                         <div className="text-xs text-slate-500">
-                          {entry.source} · {formatTimestamp(entry.timestamp)}
+                          {entry.source} / {formatTimestamp(entry.timestamp)}
                         </div>
                       </div>
                     </div>
@@ -154,3 +174,18 @@ export default function IncidentDetailPage() {
   );
 }
 
+export default function IncidentDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 max-w-5xl mx-auto">
+          <div className="rounded-lg border border-slate-800 bg-slate-900 p-6 text-sm text-slate-400">
+            Loading incident...
+          </div>
+        </div>
+      }
+    >
+      <IncidentDetailContent />
+    </Suspense>
+  );
+}

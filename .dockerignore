@@ -7,7 +7,9 @@
 __pycache__
 *.pyc
 .env
+ui/.next
+ui/node_modules
+ui/out
 iac
 docs
 tests
-

@@ -63,7 +63,7 @@ export function EventTable({ events, onAcknowledge }: EventTableProps) {
                   )}
                   {event.incidentId && (
                     <Link
-                      href={`/incidents/${encodeURIComponent(event.incidentId)}`}
+                      href={`/incident?id=${encodeURIComponent(event.incidentId)}`}
                       className="mt-2 inline-flex text-xs font-medium text-cyan-300 hover:text-cyan-200"
                     >
                       Incident timeline

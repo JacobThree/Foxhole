@@ -34,7 +34,7 @@ The default path is Stage 1. Worker diagnostics are read-only and should never p
 
 The included Compose stack runs:
 
-- FastAPI backend on `127.0.0.1:8000`
+- Foxhole dashboard and FastAPI backend on `127.0.0.1:8000`
 - Celery worker and beat scheduler
 - Redis
 - Internal read-only Docker socket proxy
@@ -50,6 +50,8 @@ $EDITOR iac/compose/config/foxhole.env
 docker compose -f iac/compose/docker-compose.yml up --build
 ```
 
+Open `http://127.0.0.1:8000` for the dashboard.
+
 Start Flower only when debugging Celery:
 
 ```bash
@@ -60,7 +62,10 @@ Minimum required setting:
 
 ```env
 FOXHOLE_API_BEARER_TOKEN=change-me
+FOXHOLE_SESSION_COOKIE_SECURE=false
 ```
+
+Keep `FOXHOLE_SESSION_COOKIE_SECURE=false` for the default local HTTP URL. Set it to `true` when serving Foxhole behind HTTPS.
 
 Optional chat/model settings:
 
@@ -84,15 +89,15 @@ Detailed Compose notes live in [docs/deployment/docker-compose.md](docs/deployme
 
 ## Dashboard UI
 
-The Next.js UI is currently run separately during development:
+The production dashboard is statically exported into the backend image and served by FastAPI. Run the Next.js UI separately only during frontend development:
 
 ```bash
 cd ui
 pnpm install
-pnpm dev
+NEXT_PUBLIC_API_URL=http://localhost:8000 pnpm dev
 ```
 
-Open `http://localhost:3000`. The UI talks to `http://localhost:8000` by default. Use the Settings page to log in with the bearer token, then configure integrations under Settings > Integrations.
+Open `http://localhost:3000`. `NEXT_PUBLIC_API_URL` points the dev UI at the backend. Without it, the UI uses same-origin API paths for production. Use the Settings page to log in with the bearer token, then configure integrations under Settings > Integrations.
 
 The integrations page shows:
 

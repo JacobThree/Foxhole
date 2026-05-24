@@ -37,6 +37,49 @@ def test_healthz_is_public() -> None:
     assert response.json() == {"status": "ok", "service": "foxhole", "version": __version__}
 
 
+def test_static_dashboard_serves_exported_index(tmp_path, monkeypatch) -> None:
+    (tmp_path / "index.html").write_text("<html><body>Foxhole dashboard</body></html>")
+    monkeypatch.setattr("agent.main.STATIC_UI_DIR", tmp_path)
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Foxhole dashboard" in response.text
+
+
+def test_static_dashboard_serves_exported_subroute(tmp_path, monkeypatch) -> None:
+    (tmp_path / "settings.html").write_text("<html><body>Settings UI</body></html>")
+    monkeypatch.setattr("agent.main.STATIC_UI_DIR", tmp_path)
+    client = TestClient(app)
+
+    response = client.get("/settings")
+
+    assert response.status_code == 200
+    assert "Settings UI" in response.text
+
+
+def test_static_dashboard_returns_404_for_missing_assets(tmp_path, monkeypatch) -> None:
+    (tmp_path / "index.html").write_text("<html><body>Foxhole dashboard</body></html>")
+    monkeypatch.setattr("agent.main.STATIC_UI_DIR", tmp_path)
+    client = TestClient(app)
+
+    response = client.get("/_next/static/missing.js")
+
+    assert response.status_code == 404
+
+
+def test_api_routes_win_over_static_dashboard(tmp_path, monkeypatch) -> None:
+    (tmp_path / "readyz.html").write_text("<html><body>Static readiness</body></html>")
+    monkeypatch.setattr("agent.main.STATIC_UI_DIR", tmp_path)
+    client = TestClient(app)
+
+    response = client.get("/readyz")
+
+    assert response.status_code in {401, 503}
+    assert "Static readiness" not in response.text
+
+
 def test_readyz_returns_redacted_status() -> None:
     app.dependency_overrides[get_settings] = _settings
     app.dependency_overrides[check_redis_ready] = _redis_ready
