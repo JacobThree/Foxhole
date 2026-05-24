@@ -14,6 +14,9 @@ STORAGE="${STORAGE:-local-lvm}"
 TEMPLATE_STORAGE="${TEMPLATE_STORAGE:-local}"
 BRIDGE="${BRIDGE:-vmbr0}"
 INSTALLER_PATH="${INSTALLER_PATH:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/install/homelab-agent-install.sh}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+STATIC_UI_ARCHIVE="${STATIC_UI_ARCHIVE:-/tmp/foxhole-ui-out.tgz}"
 
 require_root() {
   if [[ "$(id -u)" -ne 0 ]]; then
@@ -60,9 +63,17 @@ sleep 10
 
 pct exec "${CTID}" -- mkdir -p /tmp/foxhole-install
 pct push "${CTID}" "${INSTALLER_PATH}" /tmp/foxhole-install/homelab-agent-install.sh -perms 0755
-pct push "${CTID}" "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/systemd/homelab-agent.service" \
+pct push "${CTID}" "${SCRIPT_DIR}/systemd/homelab-agent.service" \
   /tmp/foxhole-install/homelab-agent.service -perms 0644
+
+if [[ -f "${SOURCE_ROOT}/ui/out/index.html" ]]; then
+  tar -C "${SOURCE_ROOT}/ui/out" -czf "${STATIC_UI_ARCHIVE}" .
+  pct push "${CTID}" "${STATIC_UI_ARCHIVE}" /tmp/foxhole-install/ui-out.tgz -perms 0644
+else
+  echo "Static dashboard build not found at ${SOURCE_ROOT}/ui/out."
+  echo "Run 'cd ${SOURCE_ROOT}/ui && pnpm install && pnpm build' before this installer to include the dashboard."
+fi
+
 pct exec "${CTID}" -- bash /tmp/foxhole-install/homelab-agent-install.sh
 
 echo "Container ${CTID} is ready. Add /etc/homelab-agent/foxhole.env values before starting the service."
-

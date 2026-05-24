@@ -5,6 +5,8 @@ AGENT_USER="${AGENT_USER:-agent}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/homelab-agent}"
 CONFIG_DIR="${CONFIG_DIR:-/etc/homelab-agent}"
 SERVICE_FILE="${SERVICE_FILE:-/tmp/foxhole-install/homelab-agent.service}"
+STATIC_UI_ARCHIVE="${STATIC_UI_ARCHIVE:-/tmp/foxhole-install/ui-out.tgz}"
+ALLOW_MISSING_STATIC_UI="${ALLOW_MISSING_STATIC_UI:-0}"
 FOXHOLE_REPO_URL="${FOXHOLE_REPO_URL:-}"
 FOXHOLE_REF="${FOXHOLE_REF:-main}"
 
@@ -29,6 +31,7 @@ fi
 
 install -d -o "${AGENT_USER}" -g "${AGENT_USER}" -m 0750 "${INSTALL_DIR}"
 install -d -o "${AGENT_USER}" -g "${AGENT_USER}" -m 0750 "${INSTALL_DIR}/data"
+install -d -o "${AGENT_USER}" -g "${AGENT_USER}" -m 0755 "${INSTALL_DIR}/ui/out"
 install -d -o root -g "${AGENT_USER}" -m 0770 "${CONFIG_DIR}"
 
 if [[ ! -f "${CONFIG_DIR}/foxhole.env" ]]; then
@@ -57,6 +60,20 @@ if [[ -f "${INSTALL_DIR}/source/pyproject.toml" ]]; then
   "${INSTALL_DIR}/venv/bin/python" -m pip install "${INSTALL_DIR}/source"
 else
   echo "No source package found. Set FOXHOLE_REPO_URL or copy source to /tmp/foxhole-src, then rerun." >&2
+fi
+
+if [[ -f "${STATIC_UI_ARCHIVE}" ]]; then
+  tar -C "${INSTALL_DIR}/ui/out" -xzf "${STATIC_UI_ARCHIVE}"
+  chown -R "${AGENT_USER}:${AGENT_USER}" "${INSTALL_DIR}/ui"
+elif [[ -f "${INSTALL_DIR}/source/ui/out/index.html" ]]; then
+  cp -a "${INSTALL_DIR}/source/ui/out/." "${INSTALL_DIR}/ui/out/"
+  chown -R "${AGENT_USER}:${AGENT_USER}" "${INSTALL_DIR}/ui"
+else
+  echo "Static dashboard build is missing. Build ui/out locally and rerun the installer." >&2
+  if [[ "${ALLOW_MISSING_STATIC_UI}" != "1" ]]; then
+    exit 1
+  fi
+  echo "Continuing because ALLOW_MISSING_STATIC_UI=1; / will return 'Dashboard not built'." >&2
 fi
 
 install -D -m 0644 "${SERVICE_FILE}" /etc/systemd/system/homelab-agent.service

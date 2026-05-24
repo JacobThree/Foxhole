@@ -53,7 +53,7 @@ class DockerSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
     enabled: bool = False
-    socket_proxy_url: str | None = "tcp://docker-socket-proxy:2375"
+    socket_proxy_url: str | None = None
 
     @property
     def configured(self) -> bool:
@@ -138,7 +138,8 @@ class AppSettings(BaseSettings):
     proxmox_token_secret: SecretStr | None = None
 
     docker_enabled: bool = False
-    docker_socket_proxy_url: str | None = "tcp://docker-socket-proxy:2375"
+    docker_socket_proxy_url: str | None = None
+    static_ui_dir: str | None = None
 
     telegram_enabled: bool = False
     telegram_bot_token: SecretStr | None = None

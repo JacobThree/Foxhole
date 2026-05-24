@@ -47,20 +47,33 @@ FOXHOLE_IMAGE=foxhole FOXHOLE_IMAGE_TAG=local docker compose -f iac/compose/dock
 ```
 
 #### Proxmox LXC / Debian Systemd
-1. Navigate to your install directory (e.g., `/opt/homelab-agent`).
-2. Pull the latest code:
+1. Navigate to your source checkout on the host, for example `/opt/homelab-agent/source`.
+2. Pull or checkout the release code:
    ```bash
    git pull origin main
+   git checkout v0.1.0
    ```
-3. Update dependencies:
+3. Build the static dashboard from that same checkout:
    ```bash
-   RTK poetry install
-   # Or activate virtualenv and run `pip install -e .`
+   cd ui
+   pnpm install
+   pnpm build
+   cd ..
    ```
-4. Restart the service:
+4. Update the Python package in the service virtualenv:
+   ```bash
+   sudo /opt/homelab-agent/venv/bin/python -m pip install /opt/homelab-agent/source
+   ```
+5. Update the served dashboard export:
+   ```bash
+   sudo install -d -o agent -g agent -m 0755 /opt/homelab-agent/ui/out
+   sudo cp -a /opt/homelab-agent/source/ui/out/. /opt/homelab-agent/ui/out/
+   sudo chown -R agent:agent /opt/homelab-agent/ui
+   ```
+6. Restart the service:
    ```bash
    sudo systemctl restart homelab-agent
    ```
 
 ### Rollback
-To rollback Compose, set `FOXHOLE_IMAGE_TAG` to the previous tag and restart. For systemd installs, checkout the previous tag (for example, `git checkout v0.0.9`) and restart the service using the steps above.
+To rollback Compose, set `FOXHOLE_IMAGE_TAG` to the previous tag and restart. For systemd installs, checkout the previous tag (for example, `git checkout v0.0.9`), rebuild/copy `ui/out`, reinstall the Python package, and restart the service using the steps above.

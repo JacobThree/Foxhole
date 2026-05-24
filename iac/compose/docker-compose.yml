@@ -12,7 +12,6 @@ services:
       FOXHOLE_SCHEDULER_ENABLED: ${FOXHOLE_SCHEDULER_ENABLED:-true}
       FOXHOLE_DATABASE_PATH: /app/data/foxhole.db
       FOXHOLE_CONFIG_ENV_PATH: /config/foxhole.env
-      FOXHOLE_DOCKER_SOCKET_PROXY_URL: tcp://docker-socket-proxy:2375
     volumes:
       - ./data:/app/data
       - ./config:/config

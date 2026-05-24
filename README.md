@@ -6,7 +6,7 @@ The project is built around opt-in integrations: if you do not enable an integra
 
 ## Current Status
 
-Foxhole is early software. The backend, worker checks, durable history, authenticated browser session flow, and dashboard UI exist. Tagged releases publish a production image to `ghcr.io/jacobthree/foxhole`; contributors can still build the same image locally from this repository.
+Foxhole is early software. The default runtime is a single FastAPI process that serves the dashboard, API, in-process scheduled diagnostics, authenticated browser session flow, and SQLite-backed history. Tagged releases publish a production image to `ghcr.io/jacobthree/foxhole`; contributors can still build the same image locally from this repository.
 
 ## What Foxhole Can Inspect
 
@@ -34,12 +34,13 @@ The default path is Stage 1. Worker diagnostics are read-only and should never p
 
 The included Compose stack runs the default single-process Foxhole app from the GHCR image:
 
-- Foxhole dashboard and FastAPI backend on `127.0.0.1:8000`
+- Static dashboard and FastAPI backend on `127.0.0.1:8000`
 - In-process scheduled diagnostics
+- In-memory live events
 - SQLite durable history
 - Optional internal read-only Docker socket proxy
 
-Redis, Celery worker, and Celery beat remain available through the separate distributed Compose file. Flower is available as an optional debug profile on `127.0.0.1:5555`.
+Redis, Celery worker, Celery beat, and Flower are not part of the default stack. They remain available only through the separate distributed Compose file for advanced installs.
 
 Durable history is written to `iac/compose/data/foxhole.db` on the host. Settings changed through the dashboard or API are written to `iac/compose/config/foxhole.env`. Back up both files if you care about event history, audits, incidents, check results, and integration settings.
 
@@ -58,13 +59,20 @@ Enable Docker diagnostics only when you want Foxhole to inspect local containers
 docker compose -f iac/compose/docker-compose.yml --profile docker up -d
 ```
 
-Use the distributed Compose file only when you want separate Redis/Celery worker processes:
+Then set these values in `iac/compose/config/foxhole.env` or through Settings > Integrations:
+
+```env
+FOXHOLE_DOCKER_ENABLED=true
+FOXHOLE_DOCKER_SOCKET_PROXY_URL=tcp://docker-socket-proxy:2375
+```
+
+Use the distributed Compose file only when you intentionally want separate Redis/Celery worker processes:
 
 ```bash
 docker compose -f iac/compose/docker-compose.distributed.yml up -d
 ```
 
-Start Flower only when debugging Celery:
+Start Flower only when debugging distributed-mode Celery:
 
 ```bash
 docker compose -f iac/compose/docker-compose.distributed.yml --profile debug up flower
@@ -110,7 +118,17 @@ Detailed Compose notes live in [docs/deployment/docker-compose.md](docs/deployme
 
 Back up `iac/compose/data/` and `iac/compose/config/` for Compose installs. For LXC or systemd installs, back up `/opt/homelab-agent/data/` and `/etc/homelab-agent/foxhole.env`. The deployment docs include stop-copy-restore commands for each path.
 
-To serve Foxhole behind HTTPS, proxy only the unified app port, for example Caddy `reverse_proxy 127.0.0.1:8000`, and set `FOXHOLE_SESSION_COOKIE_SECURE=true`. Do not expose the Docker socket proxy, Redis, or Celery services.
+To serve Foxhole behind HTTPS, proxy only the unified app port, for example Caddy `reverse_proxy 127.0.0.1:8000`, and set `FOXHOLE_SESSION_COOKIE_SECURE=true`. Do not expose the Docker socket proxy, Redis, Celery, or Flower services.
+
+## Architecture
+
+Production Foxhole is intentionally small:
+
+```text
+Browser -> FastAPI on :8000 -> static dashboard, API, scheduler, SQLite history
+```
+
+The Docker image copies the exported Next.js dashboard into `/app/ui/out` and FastAPI serves it directly. LXC and systemd installs serve the same export from `/opt/homelab-agent/ui/out` through `FOXHOLE_STATIC_UI_DIR`. In the default `single` runtime, scheduled checks run inside the app process and live events use an in-memory bus. Redis is only checked in `distributed` mode.
 
 ## Dashboard UI
 
@@ -133,7 +151,8 @@ The integrations page shows:
 
 ## Architecture And Security
 
-- **Docker socket:** Foxhole uses `tecnativa/docker-socket-proxy` in Compose. Stage 1 exposes read-only Docker API groups and keeps `POST=0`.
+- **Default runtime:** One FastAPI process serves the dashboard, API, scheduler, event stream, and SQLite history.
+- **Docker socket:** Foxhole uses `tecnativa/docker-socket-proxy` only when Docker diagnostics are enabled. Stage 1 exposes read-only Docker API groups and keeps `POST=0`.
 - **Secrets:** API keys and tokens are represented as Pydantic secrets and redacted from readiness/config summaries.
 - **LLM context:** Tools return compact structured evidence by default. Raw logs require explicit bounded output modes.
 - **Integrations:** Tools are registered only when their integration is configured, which keeps agent context and permissions scoped to your environment.

@@ -47,6 +47,13 @@ class ReadyResponse(BaseModel):
 STATIC_UI_DIR = Path(__file__).resolve().parent.parent / "ui" / "out"
 
 
+def static_ui_dir(settings: AppSettings | None = None) -> Path:
+    configured_dir = (settings or get_settings()).static_ui_dir
+    if configured_dir:
+        return Path(configured_dir)
+    return STATIC_UI_DIR
+
+
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI) -> AsyncIterator[None]:
     scheduler = create_scheduler(get_settings())
@@ -350,8 +357,9 @@ async def get_incident(
     return incident
 
 
-def _static_ui_file(full_path: str) -> Path | None:
-    if not STATIC_UI_DIR.is_dir():
+def _static_ui_file(full_path: str, settings: AppSettings | None = None) -> Path | None:
+    ui_dir = static_ui_dir(settings)
+    if not ui_dir.is_dir():
         return None
 
     requested = full_path.strip("/")
@@ -360,20 +368,20 @@ def _static_ui_file(full_path: str) -> Path | None:
 
     candidates: list[Path] = []
     if requested == "":
-        candidates.append(STATIC_UI_DIR / "index.html")
+        candidates.append(ui_dir / "index.html")
     else:
-        raw_path = STATIC_UI_DIR / requested
+        raw_path = ui_dir / requested
         candidates.extend(
             [
                 raw_path,
                 raw_path / "index.html",
-                STATIC_UI_DIR / f"{requested}.html",
+                ui_dir / f"{requested}.html",
             ]
         )
 
     for candidate in candidates:
         try:
-            candidate.relative_to(STATIC_UI_DIR)
+            candidate.relative_to(ui_dir)
         except ValueError:
             continue
         if candidate.is_file():
@@ -382,21 +390,26 @@ def _static_ui_file(full_path: str) -> Path | None:
     if requested.startswith("_next/") or Path(requested).suffix:
         return None
 
-    fallback = STATIC_UI_DIR / "index.html"
+    fallback = ui_dir / "index.html"
     return fallback if fallback.is_file() else None
 
 
 @app.get("/", include_in_schema=False)
-async def serve_static_ui_root() -> FileResponse:
-    static_file = _static_ui_file("")
+async def serve_static_ui_root(
+    settings: Annotated[AppSettings, Depends(get_settings)],
+) -> FileResponse:
+    static_file = _static_ui_file("", settings)
     if static_file is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dashboard not built")
     return FileResponse(static_file)
 
 
 @app.get("/{full_path:path}", include_in_schema=False)
-async def serve_static_ui(full_path: str) -> FileResponse:
-    static_file = _static_ui_file(full_path)
+async def serve_static_ui(
+    full_path: str,
+    settings: Annotated[AppSettings, Depends(get_settings)],
+) -> FileResponse:
+    static_file = _static_ui_file(full_path, settings)
     if static_file is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     return FileResponse(static_file)

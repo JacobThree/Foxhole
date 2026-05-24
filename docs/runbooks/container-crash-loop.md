@@ -15,5 +15,5 @@ If the container is missing environment variables, has broken volume mounts, or 
 
 ## Example Prompts
 - *"Why is the `radarr` container constantly restarting?"*
-- *"Show me the logs for the `foxhole-worker` container, it seems to be crashing."*
+- *"Show me the logs for the `radarr` container, it seems to be crashing."*
 - *"Check if any containers are currently in a restart loop."*

@@ -36,6 +36,15 @@ def test_missing_optional_integrations_do_not_disable_core_settings() -> None:
     assert status["radarr"] is False
 
 
+def test_docker_requires_explicit_socket_proxy_url() -> None:
+    settings = AppSettings(docker_enabled=True)
+
+    assert settings.integration_status()["docker"] is False
+    assert settings.integration_details()["docker"]["missing_configuration"] == [
+        "docker_socket_proxy_url"
+    ]
+
+
 def test_mock_mode_marks_runtime_integrations_available() -> None:
     settings = AppSettings(mock_mode=True)
 

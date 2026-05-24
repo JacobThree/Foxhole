@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -32,7 +33,7 @@ class InProcessScheduler:
         self.job_timeout_seconds = job_timeout_seconds
         self._stop_event = asyncio.Event()
         self._tasks: list[asyncio.Task[None]] = []
-        self._locks = {job.name: asyncio.Lock() for job in jobs}
+        self._running_jobs: dict[str, concurrent.futures.Future[Any] | asyncio.Future[Any]] = {}
 
     async def start(self) -> None:
         if self._tasks:
@@ -68,21 +69,37 @@ class InProcessScheduler:
                 raise
 
     async def _run_job(self, job: SchedulerJob) -> None:
-        lock = self._locks[job.name]
-        if lock.locked():
+        running_job = self._running_jobs.get(job.name)
+        if running_job is not None and not running_job.done():
             logger.warning("Skipping overlapping scheduled job: %s", job.name)
             return
 
-        async with lock:
-            try:
-                await asyncio.wait_for(
-                    asyncio.to_thread(job.run),
-                    timeout=self.job_timeout_seconds,
-                )
-            except TimeoutError:
-                logger.error("Scheduled job timed out: %s", job.name)
-            except Exception:
-                logger.exception("Scheduled job failed: %s", job.name)
+        loop = asyncio.get_running_loop()
+        future = loop.run_in_executor(None, job.run)
+        self._running_jobs[job.name] = future
+        try:
+            await asyncio.wait_for(asyncio.shield(future), timeout=self.job_timeout_seconds)
+        except TimeoutError:
+            logger.error("Scheduled job timed out: %s", job.name)
+            future.add_done_callback(lambda done: self._clear_timed_out_job(job.name, done))
+        except Exception:
+            logger.exception("Scheduled job failed: %s", job.name)
+        finally:
+            if future.done():
+                self._running_jobs.pop(job.name, None)
+
+    def _clear_timed_out_job(
+        self,
+        job_name: str,
+        future: concurrent.futures.Future[Any] | asyncio.Future[Any],
+    ) -> None:
+        if self._running_jobs.get(job_name) is not future:
+            return
+        self._running_jobs.pop(job_name, None)
+        try:
+            future.result()
+        except Exception:
+            logger.exception("Scheduled job failed after timeout: %s", job_name)
 
     def _job_by_name(self, job_name: str) -> SchedulerJob:
         for job in self.jobs:

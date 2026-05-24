@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 import time
 
 from agent.scheduler import InProcessScheduler, SchedulerJob, build_scheduler_jobs, create_scheduler
@@ -54,3 +55,34 @@ def test_scheduler_skips_overlapping_job_runs() -> None:
     asyncio.run(run_concurrent_jobs())
 
     assert calls == 1
+
+
+def test_scheduler_keeps_timed_out_job_marked_running() -> None:
+    calls = 0
+    release = threading.Event()
+
+    def slow_job() -> None:
+        nonlocal calls
+        calls += 1
+        release.wait(timeout=1)
+
+    async def run_timed_out_job() -> None:
+        scheduler = InProcessScheduler(
+            (SchedulerJob("slow", 60, slow_job),),
+            job_timeout_seconds=0.01,
+        )
+        await scheduler.run_once("slow")
+        await scheduler.run_once("slow")
+        assert calls == 1
+
+        release.set()
+        for _ in range(20):
+            if not scheduler._running_jobs:
+                break
+            await asyncio.sleep(0.01)
+
+        await scheduler.run_once("slow")
+
+    asyncio.run(run_timed_out_job())
+
+    assert calls == 2

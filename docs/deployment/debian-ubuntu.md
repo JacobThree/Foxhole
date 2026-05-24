@@ -11,11 +11,21 @@ ansible-playbook --syntax-check iac/ansible/playbook.yml
 ansible-playbook -i iac/ansible/inventory.yml iac/ansible/playbook.yml
 ```
 
-The playbook installs Python, venv tooling, Docker client dependencies, `nmap`, and the Foxhole package. It creates the same service user and directories as the LXC installer:
+The playbook installs Python, venv tooling, Docker client dependencies, `nmap`, the Foxhole package, and the prebuilt static dashboard from `ui/out`. Build the dashboard on the control machine before running Ansible:
+
+```bash
+cd ui
+pnpm install
+pnpm build
+cd ..
+```
+
+It creates the same service user and directories as the LXC installer:
 
 ```text
 User: agent
 Install directory: /opt/homelab-agent
+Static dashboard: /opt/homelab-agent/ui/out
 Data directory: /opt/homelab-agent/data
 Config directory: /etc/homelab-agent
 Env file: /etc/homelab-agent/foxhole.env
@@ -23,7 +33,7 @@ Env file: /etc/homelab-agent/foxhole.env
 
 The env file is created empty and never overwritten by Ansible. Add secrets on the target host after provisioning. Settings changed through the API or dashboard are written back to `/etc/homelab-agent/foxhole.env`.
 
-The installed `homelab-agent.service` runs the default single-process Foxhole runtime. One systemd service serves the dashboard, API, in-process scheduler, and SQLite-backed history on port `8000`; Redis, Celery worker, and Celery beat are optional distributed-mode additions, not default dependencies. Durable history is stored at `/opt/homelab-agent/data/foxhole.db` unless `FOXHOLE_DATABASE_PATH` is overridden in the env file.
+The installed `homelab-agent.service` runs the default single-process Foxhole runtime. One systemd service serves the static dashboard, API, in-process scheduler, in-memory live events, and SQLite-backed history on port `8000`; Redis, Celery worker, and Celery beat are optional distributed-mode additions, not default dependencies. Durable history is stored at `/opt/homelab-agent/data/foxhole.db` unless `FOXHOLE_DATABASE_PATH` is overridden in the env file.
 
 ## Manual Fallback
 
@@ -35,8 +45,12 @@ sudo apt-get install -y python3 python3-venv python3-pip python3-dev build-essen
 sudo useradd --system --create-home --home-dir /opt/homelab-agent --shell /usr/sbin/nologin agent
 sudo install -d -o agent -g agent -m 0750 /opt/homelab-agent
 sudo install -d -o agent -g agent -m 0750 /opt/homelab-agent/data
+sudo install -d -o agent -g agent -m 0755 /opt/homelab-agent/ui/out
 sudo install -d -o root -g agent -m 0770 /etc/homelab-agent
 sudo install -o root -g agent -m 0660 /dev/null /etc/homelab-agent/foxhole.env
+cd /path/to/foxhole/ui && pnpm install && pnpm build
+sudo cp -a /path/to/foxhole/ui/out/. /opt/homelab-agent/ui/out/
+sudo chown -R agent:agent /opt/homelab-agent/ui
 sudo python3 -m venv /opt/homelab-agent/venv
 sudo /opt/homelab-agent/venv/bin/python -m pip install --upgrade pip
 sudo /opt/homelab-agent/venv/bin/python -m pip install /path/to/foxhole
@@ -59,6 +73,8 @@ FOXHOLE_SESSION_COOKIE_SECURE=false
 ```
 
 Use distributed mode only for advanced installs that intentionally run separate Redis/Celery services. In that case, set `FOXHOLE_RUNTIME_MODE=distributed` and `FOXHOLE_REDIS_URL=...`, then provision Redis, Celery worker, and Celery beat separately.
+
+For source-based installs, keep `/opt/homelab-agent/ui/out` in sync when upgrading UI changes. The service file points FastAPI at that directory with `FOXHOLE_STATIC_UI_DIR`.
 
 ## Backup And Restore
 

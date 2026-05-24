@@ -163,6 +163,7 @@ def test_caddy_manifest_exposes_reverse_proxy_resources() -> None:
 def test_intent_classification_scopes_media_tools() -> None:
     settings = AppSettings(
         docker_enabled=True,
+        docker_socket_proxy_url="tcp://docker-socket-proxy:2375",
         plex_enabled=True,
         plex_base_url="http://plex.local:32400",
         plex_token=SecretStr("secret-token"),
@@ -191,6 +192,7 @@ def test_intent_classification_scopes_media_tools() -> None:
 def test_intent_classification_scopes_network_tools() -> None:
     settings = AppSettings(
         docker_enabled=True,
+        docker_socket_proxy_url="tcp://docker-socket-proxy:2375",
         pihole_enabled=True,
         pihole_base_url="http://pihole.local/admin",
         pihole_api_token=SecretStr("pihole-key"),

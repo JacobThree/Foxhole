@@ -14,6 +14,10 @@ FOXHOLE_DOCKER_ENABLED=true
 FOXHOLE_DOCKER_SOCKET_PROXY_URL=tcp://docker-socket-proxy:2375
 ```
 
+The proxy URL has no default in the application settings. Docker diagnostics are
+reported as incomplete until both the integration is enabled and the socket proxy
+URL is present.
+
 For Compose installs, start the optional read-only proxy with:
 
 ```bash

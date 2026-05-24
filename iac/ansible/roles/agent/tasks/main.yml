@@ -46,6 +46,34 @@
     group: "{{ foxhole_group }}"
     mode: "0750"
 
+- name: Create static dashboard directory
+  ansible.builtin.file:
+    path: "{{ foxhole_install_dir }}/ui/out"
+    state: directory
+    owner: "{{ foxhole_user }}"
+    group: "{{ foxhole_group }}"
+    mode: "0755"
+
+- name: Check local static dashboard build
+  ansible.builtin.stat:
+    path: "{{ foxhole_package_path }}/ui/out/index.html"
+  delegate_to: localhost
+  become: false
+  register: foxhole_static_ui_local
+
+- name: Require static dashboard build
+  ansible.builtin.fail:
+    msg: "Static dashboard is missing. Run `cd ui && pnpm install && pnpm build` before the Ansible install."
+  when: not foxhole_static_ui_local.stat.exists
+
+- name: Install static dashboard
+  ansible.builtin.copy:
+    src: "{{ foxhole_package_path }}/ui/out/"
+    dest: "{{ foxhole_install_dir }}/ui/out/"
+    owner: "{{ foxhole_user }}"
+    group: "{{ foxhole_group }}"
+    mode: preserve
+
 - name: Create config directory
   ansible.builtin.file:
     path: "{{ foxhole_config_dir }}"
@@ -92,6 +120,7 @@
       Environment=FOXHOLE_SCHEDULER_ENABLED=true
       Environment=FOXHOLE_DATABASE_PATH={{ foxhole_install_dir }}/data/foxhole.db
       Environment=FOXHOLE_CONFIG_ENV_PATH={{ foxhole_config_dir }}/foxhole.env
+      Environment=FOXHOLE_STATIC_UI_DIR={{ foxhole_install_dir }}/ui/out
       ExecStart={{ foxhole_install_dir }}/venv/bin/uvicorn agent.main:app --host 0.0.0.0 --port 8000
       Restart=on-failure
       RestartSec=5

@@ -35,14 +35,26 @@ The inside-container installer:
 
 - Installs Python, venv tooling, Docker client dependencies, `nmap`, curl, and git.
 - Creates `/opt/homelab-agent`, `/opt/homelab-agent/data`, and `/etc/homelab-agent`.
+- Installs the prebuilt static dashboard into `/opt/homelab-agent/ui/out`.
 - Creates an unprivileged `agent` service user.
 - Installs `homelab-agent.service` with systemd hardening.
 - Reads runtime configuration from `/etc/homelab-agent/foxhole.env`.
 - Writes API or dashboard settings updates back to `/etc/homelab-agent/foxhole.env`.
 
-`homelab-agent.service` runs the default single-process Foxhole runtime. One service serves the dashboard, API, in-process scheduler, and SQLite-backed history on port `8000`; Redis, Celery worker, and Celery beat are not required for the default LXC install. Durable history is stored at `/opt/homelab-agent/data/foxhole.db` unless `FOXHOLE_DATABASE_PATH` is overridden in the env file.
+`homelab-agent.service` runs the default single-process Foxhole runtime. One service serves the static dashboard, API, in-process scheduler, in-memory live events, and SQLite-backed history on port `8000`; Redis, Celery worker, and Celery beat are not required for the default LXC install. Durable history is stored at `/opt/homelab-agent/data/foxhole.db` unless `FOXHOLE_DATABASE_PATH` is overridden in the env file.
 
 Use distributed mode only for advanced installs that intentionally run separate Redis/Celery services. In that case, set `FOXHOLE_RUNTIME_MODE=distributed` and `FOXHOLE_REDIS_URL=...` in `/etc/homelab-agent/foxhole.env`, then provision the Redis, worker, and beat processes separately.
+
+Build the dashboard before running the Proxmox installer from this repository. The installer packages `ui/out` and pushes it into the container; if it is missing, the in-container install fails instead of deploying an API-only service:
+
+```bash
+cd ui
+pnpm install
+pnpm build
+cd ..
+```
+
+The service file sets `FOXHOLE_STATIC_UI_DIR=/opt/homelab-agent/ui/out`, so FastAPI serves the dashboard from the copied export instead of requiring Node.js in the container.
 
 Set `FOXHOLE_REPO_URL` when running the installer if the source is not copied into `/tmp/foxhole-src`:
 

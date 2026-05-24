@@ -1,6 +1,8 @@
 # Docker Compose Deployment
 
-The default Compose stack runs one Foxhole service from `ghcr.io/jacobthree/foxhole`. The service serves the dashboard, API, in-process scheduler, and SQLite-backed history on `127.0.0.1:8000`. The Docker socket proxy is optional and available through the `docker` profile with read-only defaults. Redis, Celery worker, and Celery beat are available through `iac/compose/docker-compose.distributed.yml`. Flower is debug-only and is published on `127.0.0.1:5555` only when the `debug` profile is enabled.
+The default Compose stack runs one Foxhole service from `ghcr.io/jacobthree/foxhole`. The service serves the static dashboard, API, in-process scheduler, in-memory live events, and SQLite-backed history on `127.0.0.1:8000`.
+
+The Docker socket proxy is optional and available through the `docker` profile with read-only defaults. Redis, Celery worker, Celery beat, and Flower are not part of the default runtime; they are available only through `iac/compose/docker-compose.distributed.yml` for advanced installs.
 
 Durable SQLite state is stored in `iac/compose/data/foxhole.db` on the host and mounted into the runtime as `/app/data/foxhole.db`. Settings changed through the API or dashboard are written to `iac/compose/config/foxhole.env` and mounted as `/config/foxhole.env`. Back up both files before recreating or moving the stack.
 
@@ -36,6 +38,21 @@ curl -H "Authorization: Bearer $FOXHOLE_API_BEARER_TOKEN" http://127.0.0.1:8000/
 ```
 
 The backend image includes the Next.js static export and serves it from the FastAPI process. A separate Node.js process is only needed for frontend development.
+
+## Runtime Shape
+
+Default Compose creates a single user-facing container:
+
+```text
+foxhole
+  |-- FastAPI API
+  |-- static dashboard from /app/ui/out
+  |-- in-process scheduler
+  |-- in-memory event bus
+  |-- SQLite at /app/data/foxhole.db
+```
+
+When `--profile docker` is used, Compose adds `docker-socket-proxy` on an internal network. The app still remains the only browser-facing service.
 
 ## Image Tags And Local Builds
 
@@ -113,7 +130,7 @@ FOXHOLE_SESSION_COOKIE_SECURE=true
 FOXHOLE_SESSION_COOKIE_SAMESITE=lax
 ```
 
-Do not proxy or publish `docker-socket-proxy`, Redis, Celery worker, or Celery beat. They are internal runtime services, not browser endpoints.
+Do not proxy or publish `docker-socket-proxy`, Redis, Celery worker, Celery beat, or Flower. They are internal runtime/debug services, not browser endpoints.
 
 If you intentionally run a separate UI origin instead of the same-origin dashboard served by Foxhole, allow that UI origin explicitly and use secure cross-site cookies:
 
@@ -138,11 +155,13 @@ FOXHOLE_DOCKER_ENABLED=true
 FOXHOLE_DOCKER_SOCKET_PROXY_URL=tcp://docker-socket-proxy:2375
 ```
 
+Do not set `FOXHOLE_DOCKER_ENABLED=true` without also starting the `docker` profile. The socket proxy URL is intentionally not part of the default one-container environment, so Docker remains incomplete until the proxy is explicitly enabled.
+
 Stage 1 exposes read-only Docker API groups used by diagnostics: containers, events, images, info, networks, and version. It sets `POST=0` and keeps mutation groups such as build, exec, secrets, services, swarm, tasks, and volumes disabled. The proxy is reachable only by services on the internal `socket-proxy` network.
 
 ## Distributed Runtime
 
-The distributed Compose file keeps the older Redis/Celery mode available for advanced installs that want separate API, worker, and beat processes:
+The distributed Compose file keeps Redis/Celery mode available for advanced installs that want separate API, worker, and beat processes:
 
 ```bash
 docker compose -f iac/compose/docker-compose.distributed.yml up -d

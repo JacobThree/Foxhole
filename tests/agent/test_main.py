@@ -53,6 +53,18 @@ def test_static_dashboard_serves_exported_index(tmp_path, monkeypatch) -> None:
     assert "Foxhole dashboard" in response.text
 
 
+def test_static_dashboard_uses_configured_static_dir(tmp_path) -> None:
+    (tmp_path / "index.html").write_text("<html><body>Configured dashboard</body></html>")
+    app.dependency_overrides[get_settings] = lambda: AppSettings(static_ui_dir=str(tmp_path))
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert "Configured dashboard" in response.text
+
+
 def test_static_dashboard_serves_exported_subroute(tmp_path, monkeypatch) -> None:
     (tmp_path / "settings.html").write_text("<html><body>Settings UI</body></html>")
     monkeypatch.setattr("agent.main.STATIC_UI_DIR", tmp_path)
