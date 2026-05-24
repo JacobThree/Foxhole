@@ -98,6 +98,8 @@ Detailed Compose notes live in [docs/deployment/docker-compose.md](docs/deployme
 
 Back up `iac/compose/data/` and `iac/compose/config/` for Compose installs. For LXC or systemd installs, back up `/opt/homelab-agent/data/` and `/etc/homelab-agent/foxhole.env`. The deployment docs include stop-copy-restore commands for each path.
 
+To serve Foxhole behind HTTPS, proxy only the unified app port, for example Caddy `reverse_proxy 127.0.0.1:8000`, and set `FOXHOLE_SESSION_COOKIE_SECURE=true`. Do not expose the Docker socket proxy, Redis, or Celery services.
+
 ## Dashboard UI
 
 The production dashboard is statically exported into the backend image and served by FastAPI. Run the Next.js UI separately only during frontend development:

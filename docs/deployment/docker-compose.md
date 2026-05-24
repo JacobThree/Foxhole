@@ -66,6 +66,39 @@ docker compose -f iac/compose/docker-compose.yml up --build -d
 
 If `FOXHOLE_DATABASE_PATH` is changed from `/app/data/foxhole.db`, back up the host mount that contains the configured path instead of only `iac/compose/data/`.
 
+## Reverse Proxy
+
+Keep the Compose port bound to localhost and proxy only the unified Foxhole app:
+
+```text
+127.0.0.1:8000 -> Foxhole dashboard/API
+```
+
+Caddy example:
+
+```caddyfile
+foxhole.example.com {
+	reverse_proxy 127.0.0.1:8000
+}
+```
+
+Use these settings when the public URL is HTTPS:
+
+```env
+FOXHOLE_SESSION_COOKIE_SECURE=true
+FOXHOLE_SESSION_COOKIE_SAMESITE=lax
+```
+
+Do not proxy or publish `docker-socket-proxy`, Redis, Celery worker, or Celery beat. They are internal runtime services, not browser endpoints.
+
+If you intentionally run a separate UI origin instead of the same-origin dashboard served by Foxhole, allow that UI origin explicitly and use secure cross-site cookies:
+
+```env
+FOXHOLE_UI_ALLOWED_ORIGINS=["https://dashboard.example.com"]
+FOXHOLE_SESSION_COOKIE_SECURE=true
+FOXHOLE_SESSION_COOKIE_SAMESITE=none
+```
+
 ## Distributed Runtime
 
 The distributed profile keeps the older Redis/Celery mode available for advanced installs that want separate API, worker, and beat processes:
